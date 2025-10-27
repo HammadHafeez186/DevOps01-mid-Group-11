@@ -54,39 +54,21 @@ module.exports = {
         }
     },
     production: {
-        // Railway PostgreSQL connection - use DATABASE_URL if available
+        // Railway PostgreSQL connection - ONLY use environment variables
         use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : undefined,
-        username: process.env.PGUSER || 'postgres',
-        password: process.env.PGPASSWORD || 'ivimUeIKQLYmRUkRuWYMxgFKgUgHYMHh',
-        database: process.env.PGDATABASE || 'railway',
-        host: process.env.PGHOST || 'mainline.proxy.rlwy.net',
-        port: process.env.PGPORT ? parseInt(process.env.PGPORT) : 10238,
+        username: process.env.PGUSER || process.env.DB_USERNAME || null,
+        password: process.env.PGPASSWORD || process.env.DB_PASSWORD || null,
+        database: process.env.PGDATABASE || process.env.DB_NAME || null,
+        host: process.env.PGHOST || process.env.DB_HOST || null,
+        port: process.env.PGPORT ? parseInt(process.env.PGPORT) : (process.env.DB_PORT ? parseInt(process.env.DB_PORT) : null),
         dialect: 'postgres',
         dialectOptions: {
             connectTimeout: 60000,
-            ssl: {
+            ssl: process.env.DATABASE_URL ? {
                 require: true,
                 rejectUnauthorized: false
-            }
+            } : false
         },
         logging: console.log // Enable logging to see connection attempts
-    },
-    // Add Railway-specific environment
-    railway: {
-        use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : undefined,
-        username: 'postgres',
-        password: 'ivimUeIKQLYmRUkRuWYMxgFKgUgHYMHh',
-        database: 'railway',
-        host: 'mainline.proxy.rlwy.net',
-        port: 10238,
-        dialect: 'postgres',
-        dialectOptions: {
-            connectTimeout: 60000,
-            ssl: {
-                require: true,
-                rejectUnauthorized: false
-            }
-        },
-        logging: console.log
     }
 }

@@ -4,12 +4,19 @@ const fs = require('fs')
 const path = require('path')
 const Sequelize = require('sequelize')
 const basename = path.basename(__filename)
-// Detect environment - Railway, production, or development
-const isRailway = process.env.RAILWAY_ENVIRONMENT || (process.env.PORT && !process.env.NODE_ENV)
-const env = isRailway ? 'railway' : (process.env.NODE_ENV || 'development')
+// Detect environment - Railway should use production
+const isRailway = process.env.PORT && !process.env.NODE_ENV
+const env = process.env.NODE_ENV || (isRailway ? 'production' : 'development')
 const config = require(path.join(__dirname, '..', 'config', 'config.js'))[env]
 
 console.log(`🔧 Using database config for environment: ${env}`)
+console.log('🔧 Config values:', {
+    use_env_variable: config.use_env_variable,
+    username: config.username ? '***' : 'undefined',
+    host: config.host,
+    port: config.port,
+    database: config.database
+})
 const db = {}
 
 let sequelize
