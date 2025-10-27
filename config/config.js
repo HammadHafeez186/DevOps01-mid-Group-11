@@ -51,8 +51,13 @@ module.exports = {
         }
     },
     production: {
-        // Railway provides DATABASE_URL automatically from PostgreSQL service
-        use_env_variable: 'DATABASE_URL',
+        // Try DATABASE_URL first, fallback to individual Railway PostgreSQL vars
+        use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : undefined,
+        username: process.env.PGUSER || 'postgres',
+        password: process.env.PGPASSWORD || process.env.DB_PASSWORD,
+        database: process.env.PGDATABASE || 'railway',
+        host: process.env.PGHOST || 'mainline.proxy.rlwy.net',
+        port: process.env.PGPORT || 10238,
         dialect: 'postgres',
         dialectOptions: {
             connectTimeout: 60000,
