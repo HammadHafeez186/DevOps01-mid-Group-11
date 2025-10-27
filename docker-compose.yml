@@ -1,0 +1,39 @@
+services:
+  # Node.js Application Service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: devops_app
+    environment:
+      NODE_ENV: docker
+      PORT: ${PORT:-3000}
+      DB_HOST: host.docker.internal
+      DB_PORT: 5433
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-Hammad1234}
+      DB_NAME: ${DB_NAME:-devops_db}
+      DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-Hammad1234}@host.docker.internal:5433/${DB_NAME:-devops_db}
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app-network
+    volumes:
+      - .:/app:ro
+      - /app/node_modules
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local

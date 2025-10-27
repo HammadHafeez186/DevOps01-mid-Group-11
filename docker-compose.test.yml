@@ -1,0 +1,54 @@
+version: '3.8'
+
+networks:
+  test-network:
+    driver: bridge
+
+services:
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: postgres-test-db
+    environment:
+      POSTGRES_USER: ${TEST_DB_USERNAME:-devops_user}
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-secure_password_123}
+      POSTGRES_DB: ${TEST_DB_NAME:-devops_test_db}
+    ports:
+      - "5434:5432"  # Different port to avoid conflicts
+    networks:
+      - test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TEST_DB_USERNAME:-devops_user} -d ${TEST_DB_NAME:-devops_test_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  app-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app-test
+    environment:
+      NODE_ENV: test
+      DB_HOST: postgres-test
+      DB_PORT: 5432
+      DB_USERNAME: ${TEST_DB_USERNAME:-devops_user}
+      DB_PASSWORD: ${TEST_DB_PASSWORD:-secure_password_123}
+      DB_NAME: ${TEST_DB_NAME:-devops_test_db}
+      DATABASE_URL: postgresql://${TEST_DB_USERNAME:-devops_user}:${TEST_DB_PASSWORD:-secure_password_123}@postgres-test:5432/${TEST_DB_NAME:-devops_test_db}
+    networks:
+      - test-network
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    command: >
+      sh -c "
+        echo 'Waiting for database to be ready...' &&
+        sleep 5 &&
+        echo 'Running database migrations...' &&
+        npx sequelize-cli db:migrate --env test || echo 'Migrations completed' &&
+        echo 'Running database seeders...' &&
+        npx sequelize-cli db:seed:all --env test || echo 'Seeders completed' &&
+        echo 'Starting tests...' &&
+        npm test || echo 'Tests completed'
+      "
