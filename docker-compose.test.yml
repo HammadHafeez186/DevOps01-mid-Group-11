@@ -13,9 +13,12 @@ services:
       POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-secure_password_123}
       POSTGRES_DB: ${TEST_DB_NAME:-devops_test_db}
     ports:
-      - "5434:5432"  # Different port to avoid conflicts
+      - "5433:5432"  # Map host port 5433 -> container 5432 (match your PostgreSQL host port)
+    hostname: postgres-test
     networks:
-      - test-network
+      test-network:
+        aliases:
+          - postgres-test
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${TEST_DB_USERNAME:-devops_user} -d ${TEST_DB_NAME:-devops_test_db}"]
       interval: 10s
