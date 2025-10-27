@@ -182,11 +182,136 @@ The project implements a comprehensive secrets management strategy addressing th
 #### 1. Environment Variable Abstraction
 **Before** (Hardcoded):
 ```json
+# DevOps Report — DevOps01 Midterm (Group 11)
+
+This report summarizes the technologies, CI/CD pipeline, secret management, testing process, and key lessons learned for the Article Management System.
+
+Live Demo: https://web-production-cf2cb.up.railway.app/articles
+
+---
+
+## 1) Technologies Used
+
+- Runtime & Frameworks
+  - Node.js 18, Express (HTTP server, routing, middleware)
+  - EJS (views), Morgan (HTTP logs), method-override
+- ORM & Database
+  - Sequelize (ORM) with PostgreSQL
+  - Models in `models/`, config in `config/config.js`
+- Containers & Orchestration
+  - Dockerfile (Node 18-alpine, non-root user)
+  - Docker Compose: `app` + `postgres` services, health checks, volumes, internal network
+- Cloud Hosting
+  - Railway (Web service + managed PostgreSQL)
+  - Nixpacks build, start via `railway.json` → `node server.js`
+- Code Quality & Security
+  - ESLint (standard config) — `npm run lint`, `npm run lint:fix`
+  - npm audit — `npm run security:audit`
+- CI/CD
+  - GitHub Actions multi-stage workflow (build → lint/audit → test → docker build → deploy)
+
+Key repo files:
+- `config/config.js` — environment configs (prod uses only DATABASE_URL with SSL)
+- `models/index.js` — Sequelize bootstrap
+- `server.js` — DB authenticate + `sequelize.sync()` before listening
+- `docker-compose.yml`, `Dockerfile` — local containers
+- `railway.json` — cloud start command
+- `test/basic.test.js` — smoke tests
+
+---
+
+## 2) Pipeline Design
+
+High-level stages the workflow implements:
+
+```
+┌─────────┐    ┌─────────────┐    ┌────────────┐    ┌──────────────┐    ┌──────────┐
+│  Build  │ →  │ Lint/Audit  │ →  │   Tests    │ →  │ Docker Build │ →  │ Deploy*  │
+└─────────┘    └─────────────┘    └────────────┘    └──────────────┘    └──────────┘
+   npm ci        eslint, audit        npm test          docker build         prod
+                                                         + tag/push        (branch
+                                                                             gate)
+```
+
+Details:
+- Build: Install dependencies with caching.
+- Lint/Audit: ESLint checks and npm security audit.
+- Tests: Start app (or use service DB), hit `/health` and root redirect (see `test/basic.test.js`).
+- Docker Build: Build production image from Dockerfile; optionally run container checks.
+- Deploy (conditional): Only from protected branch (e.g., main). Railway uses `railway.json` start command.
+
+Artifacts and secrets are handled securely (see next section).
+
+---
+
+## 3) Secret Management Strategy
+
+- Never commit secrets
+  - `.env` is ignored by Git; removed from tracking if accidentally added.
+  - No passwords or tokens hardcoded in repo.
+- GitHub Actions
+  - Use GitHub Secrets for Docker Hub credentials and any API tokens.
+- Railway (production)
+  - Web service → Variables: set `NODE_ENV=production` and `DATABASE_URL` only.
+  - `config/config.js` in production reads ONLY `DATABASE_URL` and enables SSL
+    (`ssl: { require: true, rejectUnauthorized: false }`).
+- Local development
+  - `.env` exists only locally for dev/testing.
+
+Benefits: consistent, secure configuration; zero leakage of creds into code; easy rotation.
+
+---
+
+## 4) Testing Process
+
+- Unit/Smoke Tests
+  - `npm test` runs `test/basic.test.js`
+  - Starts the app on a test port, checks:
+    - `/health` returns 200 JSON
+    - `/` redirects to `/articles`
+- Container Health
+  - Docker Compose includes healthchecks (PostgreSQL readiness, app health script if configured).
+- Database Behavior
+  - On production (Railway), `server.js` performs `sequelize.authenticate()` and `sequelize.sync()`
+    before listening — ensuring tables exist even if migrations don’t run in-container.
+- Lint & Audit
+  - `npm run lint`, `npm run security:audit` as non-functional quality gates.
+
+How to run locally (PowerShell):
+```powershell
+# Lint
+npm run lint
+
+# Tests
+npm test
 {
   "username": "fadhil",
   "password": "passwordpalingsusah",
   "database": "db_development"
 }
+```
+
+---
+
+## 5) Lessons Learned
+
+- Favor DATABASE_URL in production
+  - A single canonical DSN avoids localhost mistakes and config drift in PaaS.
+- Keep production config simple and strict
+  - We removed fallbacks and heuristics; prod uses only `DATABASE_URL` with SSL.
+- Don’t rely on sequelize-cli in cloud runtime
+  - Instead, `sequelize.sync()` ensures tables exist so app boots reliably on Railway.
+- Secrets must never enter the repo
+  - `.env` ignored; credentials only via platform secrets (GitHub Secrets, Railway Variables).
+- Observability matters
+  - Health endpoints and minimal logs are enough for quick diagnosis.
+- Docker healthchecks and dependency ordering reduce flaky starts
+  - App waits for DB readiness in Compose; Railway uses built-in service orchestration.
+
+---
+
+Prepared by: Group 11 — Hammad Hafeez, Abdullah Shahid  
+Course: DevOps for Cloud Computing (CSC418), Fall 2025
 ```
 
 **After** (Environment-based):
