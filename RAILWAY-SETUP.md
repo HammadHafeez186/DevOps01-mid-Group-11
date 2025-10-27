@@ -12,7 +12,7 @@ You must manually add the DATABASE_URL in Railway Dashboard.
 2. Select your project
 3. Click on your Web Service (not the database)
 4. Go to "Variables" tab
-5. Add these variables:
+5. Add these variables (Web Service → Variables):
 
 ```
 NODE_ENV=production
@@ -29,7 +29,7 @@ DATABASE_URL=postgresql://[PGUSER]:[PGPASSWORD]@[PGHOST]:[PGPORT]/[PGDATABASE]
 6. Click "Deploy" to redeploy with the new variable
 
 ## Alternative: Individual Variables
-If DATABASE_URL doesn't work, add these instead:
+If DATABASE_URL doesn't work, add these instead (same Web Service):
 
 ```
 NODE_ENV=production
@@ -38,6 +38,11 @@ PGPORT=[from Railway PostgreSQL Public Networking]
 PGUSER=postgres
 PGPASSWORD=[from Railway PostgreSQL service settings]
 PGDATABASE=railway
+
+Notes:
+- Do NOT add DB_HOST/DB_PORT/DB_USERNAME to Railway; production reads only DATABASE_URL.
+- Make sure your PostgreSQL service is in the same Railway project.
+- No migrations are required on Railway; the app will auto-create tables on first run.
 ```
 
 ## Security Note

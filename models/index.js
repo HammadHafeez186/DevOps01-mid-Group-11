@@ -4,26 +4,8 @@ const fs = require('fs')
 const path = require('path')
 const Sequelize = require('sequelize')
 const basename = path.basename(__filename)
-// Detect Railway environment - Railway provides PORT but may not set NODE_ENV
-const isRailway = process.env.PORT && !process.env.DB_HOST
-const env = isRailway ? 'production' : (process.env.NODE_ENV || 'development')
+const env = process.env.NODE_ENV || 'development'
 const config = require(path.join(__dirname, '..', 'config', 'config.js'))[env]
-
-console.log(`🔧 Using database config for environment: ${env}`)
-console.log('🔧 Config values:', {
-    use_env_variable: config.use_env_variable,
-    username: config.username ? '***' : 'undefined',
-    host: config.host,
-    port: config.port,
-    database: config.database
-})
-
-// Additional Railway debugging
-if (isRailway) {
-    console.log('🚂 Railway detected but variables missing!')
-    console.log('⚠️  You need to manually add environment variables in Railway Dashboard')
-    console.log('📝 Required: NODE_ENV=production and DATABASE_URL or PG* variables')
-}
 const db = {}
 
 let sequelize
