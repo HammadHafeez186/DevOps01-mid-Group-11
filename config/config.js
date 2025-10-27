@@ -47,13 +47,17 @@ module.exports = {
         }
     },
     production: {
-        use_env_variable: 'DATABASE_URL',
+        use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : undefined,
+        // Fallback to individual env vars if DATABASE_URL not available
+        username: process.env.DB_USERNAME || process.env.PGUSER || null,
+        password: process.env.DB_PASSWORD || process.env.PGPASSWORD || null,
+        database: process.env.DB_NAME || process.env.PGDATABASE || null,
+        host: process.env.DB_HOST || process.env.PGHOST || null,
+        port: process.env.DB_PORT ? Number(process.env.DB_PORT) : (process.env.PGPORT ? Number(process.env.PGPORT) : undefined),
         dialect: 'postgres',
         dialectOptions: {
-            ssl: {
-                require: true,
-                rejectUnauthorized: false
-            }
+            connectTimeout: 60000,
+            ssl: process.env.DATABASE_URL || process.env.NODE_ENV === 'production' ? { require: true, rejectUnauthorized: false } : false
         }
     }
 }
