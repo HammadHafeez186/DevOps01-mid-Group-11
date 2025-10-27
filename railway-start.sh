@@ -6,6 +6,9 @@ echo "🚂 Starting Railway deployment..."
 # Set NODE_ENV to production if not set
 export NODE_ENV=${NODE_ENV:-production}
 
+# Ensure we don't load .env files in production
+unset DOTENV_CONFIG_PATH
+
 # Debug environment variables (without showing sensitive data)
 echo "NODE_ENV: $NODE_ENV"
 echo "DATABASE_URL set: $([ -n "$DATABASE_URL" ] && echo 'YES' || echo 'NO')"
