@@ -15,8 +15,15 @@ You must manually add the DATABASE_URL in Railway Dashboard.
 5. Add this variable:
 
 ```
-DATABASE_URL=postgresql://postgres:ivimUeIKQLYmRUkRuWYMxgFKgUgHYMHh@mainline.proxy.rlwy.net:10238/railway
+DATABASE_URL=postgresql://[PGUSER]:[PGPASSWORD]@[PGHOST]:[PGPORT]/[PGDATABASE]
 ```
+
+**Get these values from your Railway PostgreSQL service settings:**
+- PGUSER: postgres
+- PGPASSWORD: [from Railway PostgreSQL service]
+- PGHOST: [from Railway PostgreSQL service - Public Networking]
+- PGPORT: [from Railway PostgreSQL service - Public Networking] 
+- PGDATABASE: railway
 
 6. Click "Deploy" to redeploy with the new variable
 
@@ -24,10 +31,10 @@ DATABASE_URL=postgresql://postgres:ivimUeIKQLYmRUkRuWYMxgFKgUgHYMHh@mainline.pro
 If DATABASE_URL doesn't work, add these instead:
 
 ```
-PGHOST=mainline.proxy.rlwy.net
-PGPORT=10238
+PGHOST=[from Railway PostgreSQL Public Networking]
+PGPORT=[from Railway PostgreSQL Public Networking] 
 PGUSER=postgres
-PGPASSWORD=ivimUeIKQLYmRUkRuWYMxgFKgUgHYMHh
+PGPASSWORD=[from Railway PostgreSQL service settings]
 PGDATABASE=railway
 ```
 
