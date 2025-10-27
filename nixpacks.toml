@@ -1,0 +1,8 @@
+[phases.build]
+cmds = ["npm install"]
+
+[phases.start]
+cmd = "chmod +x railway-start.sh && ./railway-start.sh"
+
+[variables]
+NODE_ENV = "production"
