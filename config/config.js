@@ -1,5 +1,8 @@
-// Load environment variables from .env file ONLY in development
-if (process.env.NODE_ENV !== 'production') {
+// Detect Railway environment
+const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.PORT
+const isProduction = process.env.NODE_ENV === 'production' || isRailway
+
+if (!isProduction) {
     try {
         require('dotenv').config()
         console.log('✅ Loaded .env file for development')
@@ -7,7 +10,7 @@ if (process.env.NODE_ENV !== 'production') {
         console.log('⚠️ No .env file found - using environment variables directly')
     }
 } else {
-    console.log('🚂 Production mode - using Railway environment variables only')
+    console.log('🚂 Production/Railway mode - using Railway environment variables only')
 }
 
 module.exports = {
@@ -51,13 +54,13 @@ module.exports = {
         }
     },
     production: {
-        // Try DATABASE_URL first, fallback to individual Railway PostgreSQL vars
+        // Railway PostgreSQL connection - use DATABASE_URL if available
         use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : undefined,
         username: process.env.PGUSER || 'postgres',
-        password: process.env.PGPASSWORD || process.env.DB_PASSWORD,
+        password: process.env.PGPASSWORD || 'ivimUeIKQLYmRUkRuWYMxgFKgUgHYMHh',
         database: process.env.PGDATABASE || 'railway',
         host: process.env.PGHOST || 'mainline.proxy.rlwy.net',
-        port: process.env.PGPORT || 10238,
+        port: process.env.PGPORT ? parseInt(process.env.PGPORT) : 10238,
         dialect: 'postgres',
         dialectOptions: {
             connectTimeout: 60000,
@@ -67,5 +70,23 @@ module.exports = {
             }
         },
         logging: console.log // Enable logging to see connection attempts
+    },
+    // Add Railway-specific environment
+    railway: {
+        use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : undefined,
+        username: 'postgres',
+        password: 'ivimUeIKQLYmRUkRuWYMxgFKgUgHYMHh',
+        database: 'railway',
+        host: 'mainline.proxy.rlwy.net',
+        port: 10238,
+        dialect: 'postgres',
+        dialectOptions: {
+            connectTimeout: 60000,
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
+        },
+        logging: console.log
     }
 }
