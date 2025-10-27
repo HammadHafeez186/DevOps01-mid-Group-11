@@ -8,11 +8,12 @@ try {
 
 module.exports = {
     development: {
-        username: process.env.DB_USERNAME || 'postgres',
-        password: process.env.DB_PASSWORD || 'Hammad1234',
-        database: process.env.DB_NAME || 'devops_db',
-        host: process.env.DB_HOST || '127.0.0.1',
-        port: process.env.DB_PORT || 5433,
+        // All values come from environment variables; no hardcoded secrets here.
+        username: process.env.DB_USERNAME || null,
+        password: process.env.DB_PASSWORD || null,
+        database: process.env.DB_NAME || null,
+        host: process.env.DB_HOST || null,
+        port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
         dialect: 'postgres',
         dialectOptions: {
             connectTimeout: 60000,
@@ -20,11 +21,11 @@ module.exports = {
         }
     },
     test: {
-        username: process.env.TEST_DB_USERNAME || 'devops_user',
-        password: process.env.TEST_DB_PASSWORD || 'secure_password_123',
-        database: process.env.TEST_DB_NAME || 'devops_test_db',
-        host: process.env.TEST_DB_HOST || 'postgres-test',
-        port: process.env.TEST_DB_PORT || 5432,
+        username: process.env.TEST_DB_USERNAME || null,
+        password: process.env.TEST_DB_PASSWORD || null,
+        database: process.env.TEST_DB_NAME || null,
+        host: process.env.TEST_DB_HOST || null,
+        port: process.env.TEST_DB_PORT ? Number(process.env.TEST_DB_PORT) : undefined,
         dialect: 'postgres',
         dialectOptions: {
             connectTimeout: 60000,
@@ -32,11 +33,11 @@ module.exports = {
         }
     },
     docker: {
-        username: process.env.DB_USERNAME || 'postgres',
-        password: process.env.DB_PASSWORD || 'Hammad1234',
-        database: process.env.DB_NAME || 'devops_db',
-        host: process.env.DB_HOST || 'host.docker.internal',
-        port: process.env.DB_PORT || 5433,
+        username: process.env.DB_USERNAME || null,
+        password: process.env.DB_PASSWORD || null,
+        database: process.env.DB_NAME || null,
+        host: process.env.DB_HOST || null,
+        port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
         dialect: 'postgres',
         dialectOptions: {
             connectTimeout: 60000,
