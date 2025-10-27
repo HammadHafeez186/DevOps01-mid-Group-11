@@ -128,30 +128,30 @@ The project includes a comprehensive 5-stage GitHub Actions pipeline:
 
 ### Pipeline Stages
 
-1. **🔨 Build & Install**
+1. **Build & Install**
    - Install Node.js dependencies
    - Cache node_modules for faster builds
    - Validate package integrity
 
-2. **🔍 Lint & Security Scan**
+2. **Lint & Security Scan**
    - ESLint code quality checks
    - npm audit for vulnerability scanning
    - Snyk security analysis
    - Generate security reports
 
-3. **🧪 Test with Database**
+3. **Test with Database**
    - Start PostgreSQL service
    - Run database migrations
    - Execute smoke tests
    - Validate application functionality
 
-4. **🐳 Build Docker Image**
+4. **Build Docker Image**
    - Build optimized Docker image
    - Run container tests
    - Push to Docker Hub (on main branch)
    - Generate metadata and tags
 
-5. **🚀 Deploy (Conditional)**
+5. **Deploy (Conditional)**
    - Deploy to production (main branch only)
    - Update Render/Railway services
    - Generate deployment reports
@@ -164,7 +164,7 @@ The project includes a comprehensive 5-stage GitHub Actions pipeline:
 - **Secrets management**: Secure handling of credentials
 - **Status reporting**: Detailed pipeline summaries
 
-## 🔐 Security & Secrets Management
+## Security & Secrets Management
 
 ### GitHub Secrets Required
 
@@ -191,7 +191,7 @@ SNYK_TOKEN=your_snyk_token
 - **Image optimization**: Minimal attack surface with Alpine Linux
 - **Secret rotation**: Easy credential updates through GitHub Secrets
 
-## 🧪 Testing
+## Testing
 
 ### Test Types
 
@@ -216,7 +216,7 @@ npm run lint
 npm run security:audit
 ```
 
-## 📊 Monitoring & Health Checks
+## Monitoring & Health Checks
 
 ### Application Health
 
@@ -231,7 +231,7 @@ npm run security:audit
 - Database connection verification
 - Response time tracking
 
-## 🚀 Deployment
+## Deployment
 
 ### Docker Hub
 
@@ -279,7 +279,7 @@ PORT=3000
 - Comprehensive test coverage requirements
 - Docker image optimization
 
-## 📋 API Endpoints
+## API Endpoints
 
 ### Article Management
 
@@ -295,7 +295,7 @@ PORT=3000
 
 - `GET /health` - Application health check
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### Common Issues
 
@@ -333,7 +333,7 @@ For issues and questions:
 - Review the CI/CD pipeline logs
 - Verify environment configuration
 
-## 📚 Additional Resources
+##  Additional Resources
 
 - [Docker Documentation](https://docs.docker.com/)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)
@@ -344,4 +344,4 @@ For issues and questions:
 
 **COMSATS University Islamabad, Lahore Campus**  
 Course: DevOps for Cloud Computing (CSC418)  
-Semester: Fall 2025 | Group 11
+Semester: Fall 2025 | Group 11 (Hammad Hafeez, Abdullah Shahid)

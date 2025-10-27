@@ -2,7 +2,7 @@
 
 **Course:** DevOps for Cloud Computing (CSC418)  
 **Institution:** COMSATS University Islamabad, Lahore Campus  
-**Semester:** Fall 2025 | Group 11  
+**Semester:** Fall 2025 | Group 11  (Hammad Hafeez, Abdullah Shahid)
 **Date:** October 28, 2025  
 
 ---
@@ -24,15 +24,15 @@
 
 ## Executive Summary
 
-This report documents the implementation of a complete DevOps pipeline for a Node.js article management system. The project successfully demonstrates containerization, automated CI/CD processes, security best practices, and cloud deployment strategies. The implementation addresses all examination requirements while incorporating industry-standard DevOps practices.
+This report documents the implementation of a complete DevOps pipeline for a Node.js article management system. The project successfully demonstrates containerization, automated CI/CD processes, security best practices, and cloud deployment strategies.
 
 ### Key Achievements
 
-- ✅ **Containerization**: Complete Docker and Docker Compose setup with multi-service architecture
-- ✅ **CI/CD Pipeline**: 5-stage automated pipeline with comprehensive testing and deployment
-- ✅ **Security**: Removed hardcoded credentials, implemented secrets management
-- ✅ **Testing**: Automated testing with database services and health checks
-- ✅ **Documentation**: Comprehensive technical documentation and operational guides
+- **Containerization**: Complete Docker and Docker Compose setup with multi-service architecture
+- **CI/CD Pipeline**: 5-stage automated pipeline with comprehensive testing and deployment
+- **Security**: Removed hardcoded credentials, implemented secrets management
+- **Testing**: Automated testing with database services and health checks
+- **Documentation**: Comprehensive technical documentation and operational guides
 
 ---
 
@@ -95,7 +95,7 @@ graph LR
 
 ### Stage-by-Stage Breakdown
 
-#### Stage 1: Build & Install 🔨
+#### Stage 1: Build & Install
 **Objective**: Dependency resolution and caching
 - **Actions**:
   - Checkout source code
@@ -105,7 +105,7 @@ graph LR
 - **Output**: Verified dependency tree and cached modules
 - **Duration**: ~2-3 minutes
 
-#### Stage 2: Lint & Security Scan 🔍
+#### Stage 2: Lint & Security Scan
 **Objective**: Code quality assurance and vulnerability detection
 - **Actions**:
   - Run ESLint for code style compliance
@@ -116,7 +116,7 @@ graph LR
 - **Output**: Code quality metrics and security reports
 - **Duration**: ~1-2 minutes
 
-#### Stage 3: Test with Database 🧪
+#### Stage 3: Test with Database
 **Objective**: Integration testing with real database
 - **Actions**:
   - Start PostgreSQL service container
@@ -128,7 +128,7 @@ graph LR
 - **Output**: Test results and coverage reports
 - **Duration**: ~3-4 minutes
 
-#### Stage 4: Build Docker Image 🐳
+#### Stage 4: Build Docker Image
 **Objective**: Container image creation and registry management
 - **Actions**:
   - Build optimized Docker image
@@ -139,7 +139,7 @@ graph LR
 - **Output**: Tagged Docker images ready for deployment
 - **Duration**: ~2-3 minutes
 
-#### Stage 5: Deploy (Conditional) 🚀
+#### Stage 5: Deploy (Conditional)
 **Objective**: Production deployment automation
 - **Trigger Conditions**:
   - Branch: main
@@ -711,11 +711,11 @@ This DevOps implementation successfully demonstrates a production-ready approach
 
 ### Key Achievements Summary
 
-1. **✅ Complete Containerization**: Docker and Docker Compose with multi-service architecture
-2. **✅ Advanced CI/CD Pipeline**: 5-stage automated workflow with comprehensive testing
-3. **✅ Security Implementation**: Removed hardcoded credentials and implemented secrets management
-4. **✅ Production Deployment**: Automated cloud deployment with monitoring
-5. **✅ Comprehensive Documentation**: Technical and operational documentation
+1. **Complete Containerization**: Docker and Docker Compose with multi-service architecture
+2. **Advanced CI/CD Pipeline**: 5-stage automated workflow with comprehensive testing
+3. **Security Implementation**: Removed hardcoded credentials and implemented secrets management
+4. **Production Deployment**: Automated cloud deployment with monitoring
+5. **Comprehensive Documentation**: Technical and operational documentation
 
 ### Educational Value
 
@@ -735,14 +735,15 @@ The implementation demonstrates skills directly applicable to industry DevOps ro
 - Cloud platform expertise
 - Documentation and operational procedures
 
-**Total Implementation Time**: ~15 hours  
+**Total Implementation Time**: ~6 hours  
 **Lines of Configuration**: ~500+ (YAML, Dockerfile, scripts)  
 **Security Issues Resolved**: 3 (hardcoded credentials removed)  
 **Automation Coverage**: 95% (manual deployment eliminated)
 
 ---
 
-**Report Prepared By**: Group 11  
+**Report Prepared By**: Group 11
+**NAMES**: Hammad Hafeez, Abdullah Shahid 
 **Course Instructor**: Dr. Hasan Jamal  
 **Submission Date**: October 28, 2025  
 **COMSATS University Islamabad, Lahore Campus**
