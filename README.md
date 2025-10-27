@@ -5,7 +5,12 @@
 
 A containerized Node.js application with Express, Sequelize ORM, and PostgreSQL database, featuring a complete DevOps pipeline with CI/CD automation.
 
-## 🚀 Quick Start
+## � Live Demo (Railway)
+
+- Articles: https://web-production-cf2cb.up.railway.app/articles
+
+
+## �🚀 Quick Start
 
 ### Prerequisites
 
@@ -280,6 +285,10 @@ PORT=3000
 - Docker image optimization
 
 ## API Endpoints
+
+## 📄 Documentation
+
+- DevOps Report: [devops_report.md](./devops_report.md)
 
 ### Article Management
 
