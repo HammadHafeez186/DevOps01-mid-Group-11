@@ -1,0 +1,35 @@
+# Railway Database Setup - URGENT FIX
+
+## Problem
+Railway is not automatically providing database environment variables.
+
+## Solution
+You must manually add the DATABASE_URL in Railway Dashboard.
+
+## Steps:
+
+1. Go to Railway Dashboard
+2. Select your project
+3. Click on your Web Service (not the database)
+4. Go to "Variables" tab
+5. Add this variable:
+
+```
+DATABASE_URL=postgresql://postgres:ivimUeIKQLYmRUkRuWYMxgFKgUgHYMHh@mainline.proxy.rlwy.net:10238/railway
+```
+
+6. Click "Deploy" to redeploy with the new variable
+
+## Alternative: Individual Variables
+If DATABASE_URL doesn't work, add these instead:
+
+```
+PGHOST=mainline.proxy.rlwy.net
+PGPORT=10238
+PGUSER=postgres
+PGPASSWORD=ivimUeIKQLYmRUkRuWYMxgFKgUgHYMHh
+PGDATABASE=railway
+```
+
+## Security Note
+These credentials are already exposed in your PostgreSQL service settings in Railway, so adding them as environment variables doesn't create additional security risk.
