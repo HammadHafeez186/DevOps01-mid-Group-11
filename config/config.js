@@ -1,4 +1,10 @@
-require('dotenv').config()
+// Load environment variables from .env file if available
+try {
+    require('dotenv').config()
+} catch (error) {
+    // dotenv not available or .env file not found - use environment variables directly
+    console.log('dotenv not available, using environment variables directly')
+}
 
 module.exports = {
     development: {
