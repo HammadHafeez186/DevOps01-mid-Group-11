@@ -1,25 +1,37 @@
 {
   "development": {
-    "username": "fadhil",
-    "password": "passwordpalingsusah",
-    "database": "db_development",
-    "host": "localhost",
-    "dialect": "postgres"
+    "username": "postgres",
+    "password": "Hammad1234",
+    "database": "devops_db",
+    "host": "127.0.0.1",
+    "port": 5433,
+    "dialect": "postgres",
+    "dialectOptions": {
+      "connectTimeout": 60000,
+      "ssl": false
+    }
   },
   "test": {
-    "username": "fadhil",
-    "password": "passwordpalingsusah",
-    "database": "db_test",
-    "host": "localhost",
+    "username": "postgres",
+    "password": "Hammad1234",
+    "database": "devops_test_db",
+    "host": "postgres",
     "dialect": "postgres"
+  },
+  "docker": {
+    "username": "postgres",
+    "password": "Hammad1234",
+    "database": "devops_db",
+    "host": "host.docker.internal",
+    "port": 5433,
+    "dialect": "postgres",
+    "dialectOptions": {
+      "connectTimeout": 60000,
+      "ssl": false
+    }
   },
   "production": {
     "use_env_variable": "DATABASE_URL",
-    "username": "hapguufwpqrzzv",
-    "password": "f025cb2d683bad8c0cc0a272f36efcd8609b3b1daf852a338bb400fb775a66ab",
-    "database": "d605qfmrvmfmpj",
-    "host": "ec2-54-144-251-233.compute-1.amazonaws.com",
-    "port": "5432",
     "dialect": "postgres",
     "dialectOptions": {
       "ssl": {

@@ -3,21 +3,262 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Article | All</title>
+  <title>DevOps Articles - All Articles</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --secondary-color: #64748b;
+      --success-color: #10b981;
+      --danger-color: #dc2626;
+      --warning-color: #f59e0b;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+    }
+    
+    .navbar {
+      background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .article-card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+    
+    .article-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .article-header {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      padding: 1.5rem;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .article-title {
+      color: var(--primary-color);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .article-body {
+      padding: 1.5rem;
+    }
+    
+    .article-actions {
+      padding: 1rem 1.5rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    
+    .btn-custom {
+      border-radius: 8px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      border: none;
+      padding: 0.5rem 1rem;
+    }
+    
+    .btn-primary-custom {
+      background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+      color: white;
+    }
+    
+    .btn-primary-custom:hover {
+      background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+      transform: translateY(-1px);
+    }
+    
+    .btn-success-custom {
+      background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+      color: white;
+    }
+    
+    .btn-success-custom:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      transform: translateY(-1px);
+    }
+    
+    .btn-warning-custom {
+      background: linear-gradient(135deg, var(--warning-color) 0%, #d97706 100%);
+      color: white;
+    }
+    
+    .btn-warning-custom:hover {
+      background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+      transform: translateY(-1px);
+    }
+    
+    .btn-danger-custom {
+      background: linear-gradient(135deg, var(--danger-color) 0%, #b91c1c 100%);
+      color: white;
+    }
+    
+    .btn-danger-custom:hover {
+      background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+      transform: translateY(-1px);
+    }
+    
+    .create-btn {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--success-color) 0%, #059669 100%);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      transition: all 0.3s ease;
+    }
+    
+    .create-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.2);
+    }
+    
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--secondary-color);
+    }
+    
+    .empty-state i {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      opacity: 0.5;
+    }
+  </style>
 </head>
 <body>
-  <h1>Articles Ridhan</h1>
-  <a href="/articles/create">Buat data baru</a>
-  <% articles.forEach(x => {%>
-    <div>
-      <h1><%= x.title %> </h1>
-      <p><%= x.body %> </p>
-      <a href="/articles/<%=x.id%>">Baca lebih lanjut</a>
-      <a href="/articles/update/<%=x.id%>">Ubah article</a>
-      <form method="POST" action="/articles/<%=x.id%>?_method=DELETE">
-        <button type="submit">Hapus article</button>
-      </form>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="/articles">
+        <i class="fas fa-newspaper me-2"></i>
+        DevOps Articles
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link" href="/health">
+          <i class="fas fa-heartbeat me-1"></i>
+          Health Check
+        </a>
+      </div>
     </div>
-  <% }) %>
+  </nav>
+
+  <!-- Main Content -->
+  <div class="container my-5">
+    <div class="row">
+      <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h1 class="display-5 fw-bold text-dark">
+            <i class="fas fa-newspaper text-primary me-3"></i>
+            All Articles
+          </h1>
+          <span class="badge bg-primary fs-6">
+            <i class="fas fa-list me-1"></i>
+            <%= articles.length %> Articles
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <% if (articles.length === 0) { %>
+        <div class="col-12">
+          <div class="empty-state">
+            <i class="fas fa-newspaper"></i>
+            <h3>No Articles Yet</h3>
+            <p class="lead">Start by creating your first article!</p>
+            <a href="/articles/create" class="btn btn-success-custom btn-lg">
+              <i class="fas fa-plus me-2"></i>
+              Create First Article
+            </a>
+          </div>
+        </div>
+      <% } else { %>
+        <% articles.forEach(article => { %>
+          <div class="col-lg-6 col-xl-4 mb-4">
+            <div class="article-card h-100">
+              <div class="article-header">
+                <h5 class="article-title">
+                  <i class="fas fa-file-text me-2"></i>
+                  <%= article.title || 'Untitled Article' %>
+                </h5>
+                <small class="text-muted">
+                  <i class="fas fa-calendar me-1"></i>
+                  <%= new Date(article.createdAt).toLocaleDateString('en-US', { 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                  }) %>
+                </small>
+              </div>
+              
+              <div class="article-body">
+                <p class="text-muted">
+                  <%= article.body ? (article.body.length > 100 ? article.body.substring(0, 100) + '...' : article.body) : 'No content available.' %>
+                </p>
+                
+                <% if (article.approved) { %>
+                  <span class="badge bg-success">
+                    <i class="fas fa-check me-1"></i>
+                    Approved
+                  </span>
+                <% } else { %>
+                  <span class="badge bg-warning">
+                    <i class="fas fa-clock me-1"></i>
+                    Pending
+                  </span>
+                <% } %>
+              </div>
+              
+              <div class="article-actions">
+                <a href="/articles/<%= article.id %>" class="btn btn-primary-custom btn-sm">
+                  <i class="fas fa-eye me-1"></i>
+                  Read More
+                </a>
+                <a href="/articles/update/<%= article.id %>" class="btn btn-warning-custom btn-sm">
+                  <i class="fas fa-edit me-1"></i>
+                  Edit
+                </a>
+                <form method="POST" action="/articles/<%= article.id %>?_method=DELETE" class="d-inline">
+                  <button type="submit" class="btn btn-danger-custom btn-sm" 
+                          onclick="return confirm('Are you sure you want to delete this article?')">
+                    <i class="fas fa-trash me-1"></i>
+                    Delete
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Floating Create Button -->
+  <a href="/articles/create" class="create-btn" title="Create New Article">
+    <i class="fas fa-plus"></i>
+  </a>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -3,21 +3,434 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Articles | Update</title>
+  <title>DevOps Articles - Edit Article</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-color: #2563eb;
+      --secondary-color: #64748b;
+      --success-color: #10b981;
+      --danger-color: #dc2626;
+      --warning-color: #f59e0b;
+    }
+    
+    body {
+      background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+    }
+    
+    .navbar {
+      background: linear-gradient(135deg, var(--primary-color) 0%, #1d4ed8 100%);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-container {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+    }
+    
+    .form-header {
+      background: linear-gradient(135deg, var(--warning-color) 0%, #d97706 100%);
+      color: white;
+      padding: 2rem;
+      text-align: center;
+    }
+    
+    .form-body {
+      padding: 2rem;
+    }
+    
+    .form-control {
+      border-radius: 8px;
+      border: 2px solid #e2e8f0;
+      padding: 0.75rem 1rem;
+      transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+      border-color: var(--warning-color);
+      box-shadow: 0 0 0 0.2rem rgba(245, 158, 11, 0.25);
+    }
+    
+    .form-label {
+      font-weight: 600;
+      color: var(--secondary-color);
+      margin-bottom: 0.5rem;
+    }
+    
+    .btn-custom {
+      border-radius: 8px;
+      font-weight: 500;
+      padding: 0.75rem 2rem;
+      transition: all 0.3s ease;
+      border: none;
+    }
+    
+    .btn-warning-custom {
+      background: linear-gradient(135deg, var(--warning-color) 0%, #d97706 100%);
+      color: white;
+    }
+    
+    .btn-warning-custom:hover {
+      background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-secondary-custom {
+      background: linear-gradient(135deg, var(--secondary-color) 0%, #475569 100%);
+      color: white;
+    }
+    
+    .btn-secondary-custom:hover {
+      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+      transform: translateY(-2px);
+    }
+    
+    .btn-danger-custom {
+      background: linear-gradient(135deg, var(--danger-color) 0%, #b91c1c 100%);
+      color: white;
+    }
+    
+    .btn-danger-custom:hover {
+      background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+      transform: translateY(-2px);
+    }
+    
+    .form-actions {
+      background: #f8fafc;
+      padding: 1.5rem 2rem;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      gap: 1rem;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    
+    .input-icon {
+      position: relative;
+    }
+    
+    .input-icon i {
+      position: absolute;
+      left: 1rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--secondary-color);
+      z-index: 10;
+    }
+    
+    .input-icon .form-control {
+      padding-left: 3rem;
+    }
+    
+    .textarea-container {
+      position: relative;
+    }
+    
+    .character-count {
+      position: absolute;
+      bottom: 0.5rem;
+      right: 1rem;
+      font-size: 0.875rem;
+      color: var(--secondary-color);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+    }
+    
+    .breadcrumb-custom {
+      background: transparent;
+      padding: 0;
+      margin-bottom: 1rem;
+    }
+    
+    .breadcrumb-custom .breadcrumb-item a {
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+    
+    .breadcrumb-custom .breadcrumb-item a:hover {
+      text-decoration: underline;
+    }
+    
+    .article-preview {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .preview-toggle {
+      color: var(--primary-color);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    
+    .preview-toggle:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-  <form method="POST" action="/articles/<%=article.id%>?_method=PUT">
-    <label for="title">Title</label>
-    <br>
-    <input type="text" name="title" value="<%=article.title%>"/>
-    <br>
+  <!-- Navigation -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="/articles">
+        <i class="fas fa-newspaper me-2"></i>
+        DevOps Articles
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link" href="/articles">
+          <i class="fas fa-list me-1"></i>
+          All Articles
+        </a>
+        <a class="nav-link" href="/articles/<%= article.id %>">
+          <i class="fas fa-eye me-1"></i>
+          View Article
+        </a>
+        <a class="nav-link" href="/health">
+          <i class="fas fa-heartbeat me-1"></i>
+          Health Check
+        </a>
+      </div>
+    </div>
+  </nav>
 
-    <label for="body">Body</label>
-    <br>
-    <input type="text" name="body" value="<%=article.body%>"/>
-    <br>
+  <!-- Main Content -->
+  <div class="container my-4">
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb breadcrumb-custom">
+        <li class="breadcrumb-item">
+          <a href="/articles">
+            <i class="fas fa-home me-1"></i>
+            Articles
+          </a>
+        </li>
+        <li class="breadcrumb-item">
+          <a href="/articles/<%= article.id %>">
+            <%= article.title || 'Article' %>
+          </a>
+        </li>
+        <li class="breadcrumb-item active" aria-current="page">
+          Edit
+        </li>
+      </ol>
+    </nav>
 
-    <button type="submit">Submit</button>
-  </form>
+    <div class="row justify-content-center">
+      <div class="col-lg-8 col-xl-6">
+        <div class="form-container">
+          <!-- Form Header -->
+          <div class="form-header">
+            <h2 class="mb-0">
+              <i class="fas fa-edit me-2"></i>
+              Edit Article
+            </h2>
+            <p class="mb-0 mt-2 opacity-75">Update your article content and settings</p>
+          </div>
+
+          <!-- Form Body -->
+          <form method="POST" action="/articles/<%= article.id %>?_method=PUT" id="articleForm">
+            <div class="form-body">
+              <div class="mb-4">
+                <label for="title" class="form-label">
+                  <i class="fas fa-heading me-2"></i>
+                  Article Title
+                </label>
+                <div class="input-icon">
+                  <i class="fas fa-file-text"></i>
+                  <input 
+                    type="text" 
+                    name="title" 
+                    id="title"
+                    class="form-control" 
+                    value="<%= article.title || '' %>"
+                    placeholder="Enter an engaging title for your article..."
+                    required
+                    maxlength="200"
+                  />
+                </div>
+                <div class="form-text">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Choose a clear and descriptive title (max 200 characters)
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <label for="body" class="form-label">
+                  <i class="fas fa-align-left me-2"></i>
+                  Article Content
+                </label>
+                <div class="textarea-container">
+                  <textarea 
+                    name="body" 
+                    id="body"
+                    class="form-control" 
+                    rows="10"
+                    placeholder="Write your article content here..."
+                    required
+                    maxlength="5000"
+                  ><%= article.body || '' %></textarea>
+                  <div class="character-count">
+                    <span id="charCount"><%= (article.body || '').length %></span>/5000
+                  </div>
+                </div>
+                <div class="form-text">
+                  <i class="fas fa-info-circle me-1"></i>
+                  Write engaging content that provides value to your readers
+                </div>
+              </div>
+
+              <div class="mb-4">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="approved" id="approved" value="true" 
+                         <%= article.approved ? 'checked' : '' %>>
+                  <label class="form-check-label" for="approved">
+                    <i class="fas fa-check-circle me-2 text-success"></i>
+                    <strong>Published Status</strong>
+                    <br>
+                    <small class="text-muted">Check this to make your article visible to all readers</small>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Article Preview Toggle -->
+              <div class="mb-4">
+                <a href="#" class="preview-toggle" onclick="togglePreview()">
+                  <i class="fas fa-eye me-2"></i>
+                  <span id="previewText">Show Preview</span>
+                </a>
+                <div id="articlePreview" class="article-preview" style="display: none;">
+                  <h5 class="text-primary">Preview:</h5>
+                  <h6 id="previewTitle"><%= article.title || 'Untitled Article' %></h6>
+                  <p id="previewBody" class="text-muted"><%= article.body || 'No content...' %></p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="form-actions">
+              <div class="d-flex gap-2">
+                <a href="/articles/<%= article.id %>" class="btn btn-secondary-custom">
+                  <i class="fas fa-times me-2"></i>
+                  Cancel
+                </a>
+                <a href="/articles" class="btn btn-secondary-custom">
+                  <i class="fas fa-list me-2"></i>
+                  All Articles
+                </a>
+              </div>
+              
+              <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-warning-custom">
+                  <i class="fas fa-save me-2"></i>
+                  Update Article
+                </button>
+                
+                <button type="button" class="btn btn-danger-custom" 
+                        onclick="deleteArticle(<%= article.id %>)">
+                  <i class="fas fa-trash me-2"></i>
+                  Delete
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">
+            <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+            Confirm Delete
+          </h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <p>Are you sure you want to delete this article?</p>
+          <p class="text-muted"><strong>This action cannot be undone.</strong></p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <form method="POST" action="/articles/<%= article.id %>?_method=DELETE" class="d-inline">
+            <button type="submit" class="btn btn-danger">
+              <i class="fas fa-trash me-2"></i>
+              Delete Article
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Character counter for textarea
+    const bodyTextarea = document.getElementById('body');
+    const charCount = document.getElementById('charCount');
+    const titleInput = document.getElementById('title');
+    
+    bodyTextarea.addEventListener('input', function() {
+      const currentLength = this.value.length;
+      charCount.textContent = currentLength;
+      
+      if (currentLength > 4500) {
+        charCount.style.color = '#dc2626';
+      } else if (currentLength > 4000) {
+        charCount.style.color = '#f59e0b';
+      } else {
+        charCount.style.color = '#64748b';
+      }
+      
+      // Update preview
+      document.getElementById('previewBody').textContent = this.value || 'No content...';
+    });
+
+    // Update title preview
+    titleInput.addEventListener('input', function() {
+      document.getElementById('previewTitle').textContent = this.value || 'Untitled Article';
+    });
+
+    // Preview toggle
+    function togglePreview() {
+      const preview = document.getElementById('articlePreview');
+      const previewText = document.getElementById('previewText');
+      
+      if (preview.style.display === 'none') {
+        preview.style.display = 'block';
+        previewText.textContent = 'Hide Preview';
+      } else {
+        preview.style.display = 'none';
+        previewText.textContent = 'Show Preview';
+      }
+    }
+
+    // Delete article function
+    function deleteArticle(articleId) {
+      const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+      deleteModal.show();
+    }
+
+    // Form submission animation
+    document.getElementById('articleForm').addEventListener('submit', function(e) {
+      const submitBtn = this.querySelector('button[type="submit"]');
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Updating...';
+      submitBtn.disabled = true;
+    });
+  </script>
 </body>
 </html>

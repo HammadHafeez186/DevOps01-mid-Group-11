@@ -11,6 +11,11 @@ app.use(morgan('dev'));
 
 app.set('view engine', 'ejs')
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 app.get('/', (req, res) => {
   res.status(300).redirect('/articles');
 })
@@ -51,20 +56,25 @@ app.post('/articles', (req, res) => {
   })
 })
 
-// Get Aricle by Id
+// Get Article by Id
 app.get('/articles/:id', (req, res) => {
   Article.findByPk(req.params.id)
   .then(article => {
     if(article) {
-      // res.status(204).json(article)
+      // res.status(200).json(article)
       res.status(200).render('show', {
-        title:article.title,
-        body: article.body
+        id: article.id,
+        title: article.title,
+        body: article.body,
+        approved: article.approved,
+        createdAt: article.createdAt,
+        updatedAt: article.updatedAt
       });
     } else {
-      res.status(400).json({
-        message: "ID Article is Not Found"
-      })  
+      res.status(404).render('error', {
+        message: "Article Not Found",
+        error: "The article you're looking for doesn't exist."
+      });
     }
   })
   .catch(err => {

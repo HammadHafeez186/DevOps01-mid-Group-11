@@ -1,0 +1,59 @@
+# Node.js
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables
+.env
+.env.*
+
+# Git
+.git
+.gitignore
+
+# Documentation (except essential)
+README.md
+devops_report.md
+*.md
+
+# IDE and editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# CI/CD
+.github
+
+# Docker
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Logs and reports
+logs
+*.log
+coverage
+*.lcov
+eslint-report.json
+audit-report.json
+
+# Test files
+test
+*.test.js
+*.spec.js
+
+# Temporary files
+*.tmp
+*.temp
