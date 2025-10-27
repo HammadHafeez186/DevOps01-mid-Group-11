@@ -12,9 +12,10 @@ You must manually add the DATABASE_URL in Railway Dashboard.
 2. Select your project
 3. Click on your Web Service (not the database)
 4. Go to "Variables" tab
-5. Add this variable:
+5. Add these variables:
 
 ```
+NODE_ENV=production
 DATABASE_URL=postgresql://[PGUSER]:[PGPASSWORD]@[PGHOST]:[PGPORT]/[PGDATABASE]
 ```
 
@@ -31,6 +32,7 @@ DATABASE_URL=postgresql://[PGUSER]:[PGPASSWORD]@[PGHOST]:[PGPORT]/[PGDATABASE]
 If DATABASE_URL doesn't work, add these instead:
 
 ```
+NODE_ENV=production
 PGHOST=[from Railway PostgreSQL Public Networking]
 PGPORT=[from Railway PostgreSQL Public Networking] 
 PGUSER=postgres

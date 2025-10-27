@@ -1,5 +1,5 @@
-// Detect Railway environment
-const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.PORT
+// Detect Railway environment - Railway has PORT but no local DB_HOST
+const isRailway = process.env.PORT && !process.env.DB_HOST
 const isProduction = process.env.NODE_ENV === 'production' || isRailway
 
 if (!isProduction) {
