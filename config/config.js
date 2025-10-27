@@ -1,5 +1,5 @@
-// Detect Railway environment
-const isRailway = process.env.RAILWAY_ENVIRONMENT || process.env.PORT
+// Detect Railway environment - Railway has PORT but no local DB_HOST
+const isRailway = process.env.PORT && !process.env.DB_HOST
 const isProduction = process.env.NODE_ENV === 'production' || isRailway
 
 if (!isProduction) {
@@ -56,11 +56,11 @@ module.exports = {
     production: {
         // Railway PostgreSQL connection - ONLY use environment variables
         use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : undefined,
-        username: process.env.PGUSER || process.env.DB_USERNAME || null,
-        password: process.env.PGPASSWORD || process.env.DB_PASSWORD || null,
-        database: process.env.PGDATABASE || process.env.DB_NAME || null,
-        host: process.env.PGHOST || process.env.DB_HOST || null,
-        port: process.env.PGPORT ? parseInt(process.env.PGPORT) : (process.env.DB_PORT ? parseInt(process.env.DB_PORT) : null),
+        username: process.env.PGUSER || process.env.DB_USERNAME || 'postgres',
+        password: process.env.PGPASSWORD || process.env.DB_PASSWORD || '',
+        database: process.env.PGDATABASE || process.env.DB_NAME || 'railway',
+        host: process.env.PGHOST || process.env.DB_HOST || 'localhost',
+        port: process.env.PGPORT ? parseInt(process.env.PGPORT) : (process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432),
         dialect: 'postgres',
         dialectOptions: {
             connectTimeout: 60000,

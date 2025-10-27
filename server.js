@@ -1,12 +1,14 @@
 // Railway deployment debugging
 console.log('🚂 Railway Environment Check:')
 console.log('NODE_ENV:', process.env.NODE_ENV)
+console.log('PORT:', process.env.PORT)
+console.log('DB_HOST:', process.env.DB_HOST)
+console.log('Is Railway?:', !!(process.env.PORT && !process.env.DB_HOST))
 console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL)
 console.log('PGHOST:', process.env.PGHOST)
 console.log('PGPORT:', process.env.PGPORT)
 console.log('PGUSER:', process.env.PGUSER)
 console.log('PGDATABASE:', process.env.PGDATABASE)
-console.log('PORT:', process.env.PORT)
 
 const app = require('./app')
 const http = require('http')
