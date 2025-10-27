@@ -1,9 +1,13 @@
-// Load environment variables from .env file if available
-try {
-    require('dotenv').config()
-} catch (error) {
-    // dotenv not available or .env file not found - use environment variables directly
-    console.log('dotenv not available, using environment variables directly')
+// Load environment variables from .env file ONLY in development
+if (process.env.NODE_ENV !== 'production') {
+    try {
+        require('dotenv').config()
+        console.log('✅ Loaded .env file for development')
+    } catch (error) {
+        console.log('⚠️ No .env file found - using environment variables directly')
+    }
+} else {
+    console.log('🚂 Production mode - using Railway environment variables only')
 }
 
 module.exports = {
@@ -47,17 +51,16 @@ module.exports = {
         }
     },
     production: {
-        use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : undefined,
-        // Fallback to individual env vars if DATABASE_URL not available
-        username: process.env.DB_USERNAME || process.env.PGUSER || null,
-        password: process.env.DB_PASSWORD || process.env.PGPASSWORD || null,
-        database: process.env.DB_NAME || process.env.PGDATABASE || null,
-        host: process.env.DB_HOST || process.env.PGHOST || null,
-        port: process.env.DB_PORT ? Number(process.env.DB_PORT) : (process.env.PGPORT ? Number(process.env.PGPORT) : undefined),
+        // Railway provides DATABASE_URL automatically from PostgreSQL service
+        use_env_variable: 'DATABASE_URL',
         dialect: 'postgres',
         dialectOptions: {
             connectTimeout: 60000,
-            ssl: process.env.DATABASE_URL || process.env.NODE_ENV === 'production' ? { require: true, rejectUnauthorized: false } : false
-        }
+            ssl: {
+                require: true,
+                rejectUnauthorized: false
+            }
+        },
+        logging: console.log // Enable logging to see connection attempts
     }
 }
