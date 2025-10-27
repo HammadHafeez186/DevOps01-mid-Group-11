@@ -49,10 +49,10 @@ coverage
 eslint-report.json
 audit-report.json
 
-# Test files
-test
-*.test.js
-*.spec.js
+# Test files (commented out - needed for docker-compose test)
+# test
+# *.test.js
+# *.spec.js
 
 # Temporary files
 *.tmp
