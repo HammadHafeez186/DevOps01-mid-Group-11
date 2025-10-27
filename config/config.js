@@ -22,7 +22,7 @@ module.exports = {
     },
     test: {
         // Use DATABASE_URL if available (Railway/production), otherwise individual env vars
-        use_env_variable: process.env.DATABASE_URL ? 'DATABASE_URL' : undefined,
+        use_env_variable: process.env.DATABASE_URL && process.env.NODE_ENV === 'production' ? 'DATABASE_URL' : undefined,
         username: process.env.TEST_DB_USERNAME || process.env.DB_USERNAME || null,
         password: process.env.TEST_DB_PASSWORD || process.env.DB_PASSWORD || null,
         database: process.env.TEST_DB_NAME || process.env.DB_NAME || null,
@@ -31,7 +31,7 @@ module.exports = {
         dialect: 'postgres',
         dialectOptions: {
             connectTimeout: 60000,
-            ssl: process.env.DATABASE_URL ? { require: true, rejectUnauthorized: false } : false
+            ssl: process.env.DATABASE_URL && process.env.NODE_ENV === 'production' ? { require: true, rejectUnauthorized: false } : false
         }
     },
     docker: {
