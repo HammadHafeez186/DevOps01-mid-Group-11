@@ -11,9 +11,16 @@ async function start() {
         await sequelize.sync()
     } catch (err) {
         console.error('Database initialization failed:', err.message)
+        process.exit(1)
     }
 
     const server = http.createServer(app)
+
+    server.on('error', (error) => {
+        console.error('Server failed to start:', error.message)
+        process.exit(1)
+    })
+
     server.listen(PORT, () => {
         console.log(`Server listening on http://localhost:${PORT}`)
     })
