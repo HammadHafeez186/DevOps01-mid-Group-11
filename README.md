@@ -3,14 +3,14 @@
 [![CI/CD Pipeline](https://github.com/HammadHafeez186/DevOps01-mid-Group-11/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/HammadHafeez186/DevOps01-mid-Group-11/actions/workflows/ci-cd.yml)
 [![Docker Hub](https://img.shields.io/docker/pulls/your-dockerhub-username/devops-project-app)](https://hub.docker.com/r/your-dockerhub-username/devops-project-app)
 
-A containerized Node.js application with Express, Sequelize ORM, and PostgreSQL database, featuring a complete DevOps pipeline with CI/CD automation.
+A containerized Node.js application with Express, Sequelize ORM, and PostgreSQL database, featuring a complete DevOps pipeline with CI/CD automation. The service now supports both HTML views and JSON responses, making it suitable for browser users and API consumers alike.
 
-## � Live Demo (Railway)
+## 🌐 Live Demo (Railway)
 
 - Articles: https://web-production-cf2cb.up.railway.app/articles
 
 
-## �🚀 Quick Start
+## 🚀 Quick Start
 
 ### Prerequisites
 
@@ -73,25 +73,24 @@ A containerized Node.js application with Express, Sequelize ORM, and PostgreSQL 
 ```
 .
 ├── .github/workflows/          # CI/CD pipeline configuration
-│   └── ci-cd.yml              # Main GitHub Actions workflow
-├── config/                    # Database configuration
-│   └── config.json           # Sequelize configuration
-├── init-db/                   # Database initialization scripts
-│   └── init.sh               # PostgreSQL setup script
-├── migrations/                # Database migrations
-├── models/                    # Sequelize models
-├── seeders/                   # Database seeders
-├── test/                      # Test files
-│   └── basic.test.js         # Basic smoke tests
-├── views/                     # EJS templates
-├── .env.example              # Environment variables template
-├── app.js                    # Express application
-├── docker-compose.yml        # Multi-service container setup
-├── docker-compose.test.yml   # Testing container setup
-├── Dockerfile               # Application container image
-├── healthcheck.js           # Application health check
-├── package.json             # Node.js dependencies and scripts
-└── server.js                # Application entry point
+│   └── ci-cd.yml               # Main GitHub Actions workflow
+├── config/                     # Database configuration
+│   └── config.js               # Sequelize setup driven by env vars
+├── init-db/                    # Database initialization scripts
+├── migrations/                 # Sequelize migrations
+├── models/                     # Sequelize models
+├── routes/                     # Express route handlers
+├── test/                       # Smoke tests
+│   └── basic.test.js           # Basic health and redirect checks
+├── views/                      # EJS templates
+├── app.js                      # Express application
+├── server.js                   # Application entry point
+├── Dockerfile                  # Application container image
+├── docker-compose.yml          # Multi-service container setup
+├── docker-compose.test.yml     # Testing container setup
+├── .dockerignore               # Build context exclusions
+├── package.json                # Node.js dependencies and scripts
+└── README.md                   # Project documentation
 ```
 
 ## 🐳 Docker Configuration
@@ -107,6 +106,7 @@ A containerized Node.js application with Express, Sequelize ORM, and PostgreSQL 
 - **Persistent storage**: Database data persists using Docker volumes
 - **Health checks**: Both services include health monitoring
 - **Security**: Non-root user execution, optimized image layers
+- **Lean images**: .dockerignore keeps build context focused on runtime assets
 
 ### Available Commands
 
