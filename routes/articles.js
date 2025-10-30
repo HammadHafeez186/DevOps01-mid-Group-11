@@ -19,7 +19,7 @@ const asyncHandler = (handler) => (req, res, next) => {
     Promise.resolve(handler(req, res, next)).catch(next)
 }
 
-router.get('/', asyncHandler(async (req, res) => {
+router.get('/', asyncHandler(async(req, res) => {
     const articles = await Article.findAll({
         order: [['createdAt', 'DESC']]
     })
@@ -36,7 +36,7 @@ router.get('/create', (req, res) => {
     res.render('create')
 })
 
-router.get('/update/:id', asyncHandler(async (req, res, next) => {
+router.get('/update/:id', asyncHandler(async(req, res, next) => {
     const article = await Article.findByPk(req.params.id)
 
     if (!article) {
@@ -49,7 +49,7 @@ router.get('/update/:id', asyncHandler(async (req, res, next) => {
     res.render('update', { article })
 }))
 
-router.get('/:id', asyncHandler(async (req, res, next) => {
+router.get('/:id', asyncHandler(async(req, res, next) => {
     const article = await Article.findByPk(req.params.id)
 
     if (!article) {
@@ -74,7 +74,7 @@ router.get('/:id', asyncHandler(async (req, res, next) => {
     })
 }))
 
-router.post('/', asyncHandler(async (req, res, next) => {
+router.post('/', asyncHandler(async(req, res, next) => {
     const payload = {
         title: req.body.title,
         body: req.body.body,
@@ -100,7 +100,7 @@ router.post('/', asyncHandler(async (req, res, next) => {
     }
 }))
 
-router.put('/:id', asyncHandler(async (req, res, next) => {
+router.put('/:id', asyncHandler(async(req, res, next) => {
     const article = await Article.findByPk(req.params.id)
 
     if (!article) {
@@ -135,7 +135,7 @@ router.put('/:id', asyncHandler(async (req, res, next) => {
     }
 }))
 
-router.delete('/:id', asyncHandler(async (req, res, next) => {
+router.delete('/:id', asyncHandler(async(req, res, next) => {
     const article = await Article.findByPk(req.params.id)
 
     if (!article) {
