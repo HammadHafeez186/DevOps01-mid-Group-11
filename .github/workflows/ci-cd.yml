@@ -15,14 +15,13 @@ on:
 env:
   DOCKER_IMAGE_NAME: devops-project-app
   REGISTRY: docker.io
-  RUN_PIPELINE: ${{ github.event_name == 'push' || (github.event_name == 'pull_request' && github.head_ref == 'dev' && github.base_ref == 'main') }}
 
 jobs:
   # Stage 1: Build & Install Dependencies
   build-and-install:
     name: 🔨 Build & Install
     runs-on: ubuntu-latest
-    if: env.RUN_PIPELINE == 'true'
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.head_ref == 'dev' && github.base_ref == 'main')
     
     steps:
     - name: 📥 Checkout code
@@ -52,7 +51,7 @@ jobs:
     name: 🔍 Lint & Security Scan
     runs-on: ubuntu-latest
     needs: build-and-install
-    if: env.RUN_PIPELINE == 'true'
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.head_ref == 'dev' && github.base_ref == 'main')
     
     steps:
     - name: 📥 Checkout code
@@ -98,7 +97,7 @@ jobs:
     name: 🧪 Test with Database
     runs-on: ubuntu-latest
     needs: [build-and-install, lint-and-security]
-    if: env.RUN_PIPELINE == 'true'
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.head_ref == 'dev' && github.base_ref == 'main')
     
     services:
       postgres:
@@ -165,7 +164,7 @@ jobs:
     name: 🐳 Build Docker Image
     runs-on: ubuntu-latest
     needs: [test]
-    if: env.RUN_PIPELINE == 'true'
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.head_ref == 'dev' && github.base_ref == 'main')
     
     steps:
     - name: 📥 Checkout code
@@ -254,7 +253,7 @@ jobs:
     name: 📢 Notify Results
     runs-on: ubuntu-latest
     needs: [build-and-install, lint-and-security, test, build-docker, deploy]
-    if: ${{ env.RUN_PIPELINE == 'true' && always() }}
+    if: always() && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.head_ref == 'dev' && github.base_ref == 'main'))
     
     steps:
     - name: 📊 Pipeline Summary
