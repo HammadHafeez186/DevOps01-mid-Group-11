@@ -1,6 +1,6 @@
-'use strict';
+'use strict'
 
-const { Model } = require('sequelize');
+const { Model } = require('sequelize')
 
 module.exports = (sequelize, DataTypes) => {
     class Article extends Model {
@@ -21,7 +21,7 @@ module.exports = (sequelize, DataTypes) => {
                 allowNull: false,
                 set(value) {
                     // Trim user supplied titles to keep the stored value clean.
-                    this.setDataValue('title', value ? value.trim() : value);
+                    this.setDataValue('title', value ? value.trim() : value)
                 },
                 validate: {
                     notEmpty: {
@@ -52,7 +52,7 @@ module.exports = (sequelize, DataTypes) => {
             sequelize,
             modelName: 'Article'
         }
-    );
+    )
 
-    return Article;
-};
+    return Article
+}
