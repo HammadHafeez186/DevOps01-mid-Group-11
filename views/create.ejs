@@ -220,7 +220,9 @@
 
               <div class="mb-4">
                 <div class="form-check">
-                  <input class="form-check-input" type="checkbox" name="approved" id="approved" value="true">
+                  <input class="form-check-input" type="checkbox" name="approved" id="approved" value="true"
+                    <%= approved ? 'checked' : '' %>
+                  >
                   <label class="form-check-label" for="approved">
                     <strong>Publish immediately</strong>
                     <span class="d-block text-muted small">Skip review and make the article public as soon as you save it.</span>
