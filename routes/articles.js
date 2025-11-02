@@ -305,6 +305,7 @@ router.get('/create', (req, res) => {
 
     res.render('create', {
         defaultVisibility,
+        selectedVisibility: defaultVisibility, // Add this for template compatibility
         title: '',
         body: '',
         approved: false,
