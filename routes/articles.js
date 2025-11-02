@@ -178,15 +178,15 @@ const saveMediaRecords = async(article, files, videoLinks) => {
             .filter(Boolean)
     ))
 
-    uniqueVideoLinks.forEach(link => {
+    uniqueVideoLinks.forEach((link) => {
         tasks.push(
             ArticleMedia.create({
                 articleId: article.id,
                 type: 'video',
                 externalUrl: link
-                })
-            )
-        })
+            })
+        )
+    })
 
     await Promise.all(tasks)
 }
