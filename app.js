@@ -1,16 +1,49 @@
+const path = require('path')
 const express = require('express')
 const morgan = require('morgan')
+const session = require('express-session')
 const methodOverride = require('method-override')
 const articlesRouter = require('./routes/articles')
+const authRouter = require('./routes/auth')
+const { requireAuth } = require('./middleware/auth')
+const { baseUploadDir } = require('./middleware/uploads')
 
-const app = express()
 const isProduction = process.env.NODE_ENV === 'production'
+const app = express()
+const sessionSecret = process.env.SESSION_SECRET || 'change-me'
+
+if (isProduction) {
+    app.set('trust proxy', 1)
+}
 
 app.disable('x-powered-by')
 app.use(express.json())
 app.use(express.urlencoded({ extended: true }))
 app.use(methodOverride('_method'))
 app.use(morgan(isProduction ? 'combined' : 'dev'))
+app.use(express.static(path.join(__dirname, 'public')))
+app.use('/uploads', express.static(baseUploadDir))
+app.use(session({
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isProduction
+    }
+}))
+
+app.use((req, res, next) => {
+    res.locals.currentUser = req.session && req.session.user ? req.session.user : null
+    res.locals.flash = req.session && req.session.flash ? req.session.flash : null
+
+    if (req.session && req.session.flash) {
+        delete req.session.flash
+    }
+
+    next()
+})
 
 app.set('view engine', 'ejs')
 
@@ -23,7 +56,8 @@ app.get('/', (req, res) => {
     res.redirect('/articles')
 })
 
-app.use('/articles', articlesRouter)
+app.use('/auth', authRouter)
+app.use('/articles', requireAuth, articlesRouter)
 
 app.use((req, res) => {
     const message = 'Route Not Found'

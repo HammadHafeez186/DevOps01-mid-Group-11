@@ -9,8 +9,17 @@ module.exports = (sequelize, DataTypes) => {
          * This method is not a part of Sequelize lifecycle.
          * The `models/index` file will call this method automatically.
          */
-        static associate() {
-            // define association here
+        static associate(models) {
+            Article.belongsTo(models.User, {
+                as: 'owner',
+                foreignKey: 'userId'
+            })
+            Article.hasMany(models.ArticleMedia, {
+                as: 'media',
+                foreignKey: 'articleId',
+                onDelete: 'CASCADE',
+                hooks: true
+            })
         }
     }
 
@@ -46,6 +55,21 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.BOOLEAN,
                 allowNull: false,
                 defaultValue: false
+            },
+            visibility: {
+                type: DataTypes.ENUM('public', 'private'),
+                allowNull: false,
+                defaultValue: 'public',
+                validate: {
+                    isIn: {
+                        args: [['public', 'private']],
+                        msg: 'Visibility must be public or private.'
+                    }
+                }
+            },
+            userId: {
+                type: DataTypes.INTEGER,
+                allowNull: true
             }
         },
         {
