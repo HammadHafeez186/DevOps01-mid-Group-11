@@ -1,87 +1,73 @@
 'use strict'
 
-const nodemailer = require('nodemailer')
+const { Resend } = require('resend')
 
-let transportPromise
+/**
+ * Secure email service using Resend API
+ * This is Railway-compatible and doesn't have SMTP timeout issues
+ */
+const getEmailService = () => {
+    const apiKey = process.env.RESEND_API_KEY
 
-const buildTransport = async() => {
-    if (transportPromise) {
-        return transportPromise
+    if (apiKey) {
+        return new Resend(apiKey)
     }
 
-    const {
-        EMAIL_HOST,
-        EMAIL_PORT,
-        EMAIL_USER,
-        EMAIL_PASS,
-        EMAIL_SECURE
-    } = process.env
-
-    if (EMAIL_HOST && EMAIL_PORT && EMAIL_USER && EMAIL_PASS) {
-        transportPromise = Promise.resolve(
-            nodemailer.createTransport({
-                host: EMAIL_HOST,
-                port: Number(EMAIL_PORT),
-                secure: EMAIL_SECURE === 'true',
-                connectionTimeout: 10000, // 10 seconds
-                greetingTimeout: 5000,    // 5 seconds
-                socketTimeout: 10000,     // 10 seconds
-                auth: {
-                    user: EMAIL_USER,
-                    pass: EMAIL_PASS
-                },
-                // Gmail specific settings
-                ...(EMAIL_HOST === 'smtp.gmail.com' && {
-                    service: 'gmail',
-                    tls: {
-                        rejectUnauthorized: false
-                    }
-                })
-            })
-        )
-        return transportPromise
-    }
-
-    transportPromise = nodemailer.createTestAccount()
-        .then((testAccount) => {
-            console.warn(
-                'Email credentials are not configured. Using a Nodemailer Ethereal test account instead.'
-            )
-
-            return nodemailer.createTransport({
-                host: testAccount.smtp.host,
-                port: testAccount.smtp.port,
-                secure: testAccount.smtp.secure,
-                auth: {
-                    user: testAccount.user,
-                    pass: testAccount.pass
-                }
-            })
-        })
-        .catch((error) => {
-            console.error('Failed to create test email account:', error.message)
-            return nodemailer.createTransport({
-                streamTransport: true,
-                newline: 'unix',
-                buffer: true
-            })
-        })
-
-    return transportPromise
+    console.warn('RESEND_API_KEY not configured. Email sending will be mocked.')
+    return null
 }
 
+/**
+ * Send email using Resend API or mock service
+ * @param {Object} options - Email options
+ * @param {string} options.to - Recipient email
+ * @param {string} options.subject - Email subject
+ * @param {string} options.text - Plain text content
+ * @param {string} options.html - HTML content (optional)
+ * @param {string} options.from - Sender email (optional)
+ */
 const sendMail = async(options) => {
-    const transporter = await buildTransport()
-    const info = await transporter.sendMail(options)
+    const resend = getEmailService()
 
-    const previewUrl = nodemailer.getTestMessageUrl(info)
-    if (previewUrl) {
-        console.log(`Email preview available at: ${previewUrl}`)
-    } else if (transporter.options.streamTransport && info && info.message) {
-        console.log('Mock email content:\n', info.message.toString())
+    if (resend) {
+        try {
+            const emailData = {
+                from: options.from || process.env.EMAIL_FROM || 'DevOps Articles <noreply@resend.dev>',
+                to: options.to,
+                subject: options.subject,
+                text: options.text
+            }
+
+            // Add HTML content if provided
+            if (options.html) {
+                emailData.html = options.html
+            }
+
+            const result = await resend.emails.send(emailData)
+
+            if (result.error) {
+                throw new Error(result.error.message || 'Unknown Resend API error')
+            }
+
+            console.log('✅ Email sent successfully via Resend API:', result.data?.id)
+            return result
+        } catch (error) {
+            console.error('❌ Resend API error:', error.message)
+            throw new Error(`Email service failed: ${error.message}`)
+        }
+    } else {
+        // Mock email service for development/testing
+        console.log('📧 MOCK EMAIL (Resend not configured):')
+        console.log(`To: ${options.to}`)
+        console.log(`Subject: ${options.subject}`)
+        console.log(`Content: ${options.text}`)
+        console.log('---')
+
+        return {
+            data: { id: 'mock-email-' + Date.now() },
+            error: null
+        }
     }
-
-    return info
 }
 
 module.exports = {
