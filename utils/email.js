@@ -23,10 +23,20 @@ const buildTransport = async() => {
                 host: EMAIL_HOST,
                 port: Number(EMAIL_PORT),
                 secure: EMAIL_SECURE === 'true',
+                connectionTimeout: 10000, // 10 seconds
+                greetingTimeout: 5000,    // 5 seconds
+                socketTimeout: 10000,     // 10 seconds
                 auth: {
                     user: EMAIL_USER,
                     pass: EMAIL_PASS
-                }
+                },
+                // Gmail specific settings
+                ...(EMAIL_HOST === 'smtp.gmail.com' && {
+                    service: 'gmail',
+                    tls: {
+                        rejectUnauthorized: false
+                    }
+                })
             })
         )
         return transportPromise
