@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Railway deployment script
 echo "🚂 Starting Railway deployment..."
