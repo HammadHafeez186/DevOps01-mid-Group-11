@@ -303,7 +303,13 @@ router.get('/mine', asyncHandler(async(req, res) => {
 router.get('/create', (req, res) => {
     const defaultVisibility = normalizeVisibility(req.query.visibility || 'private')
 
-    res.render('create', { defaultVisibility })
+    res.render('create', {
+        defaultVisibility,
+        title: '',
+        body: '',
+        approved: false,
+        videoLinks: ['']
+    })
 })
 
 router.get('/update/:id', asyncHandler(async(req, res, next) => {
