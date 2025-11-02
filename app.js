@@ -12,6 +12,21 @@ const isProduction = process.env.NODE_ENV === 'production'
 const app = express()
 const sessionSecret = process.env.SESSION_SECRET || 'change-me'
 
+// Configure session store for production
+let sessionStore
+if (isProduction) {
+    const pgSession = require('connect-pg-simple')(session)
+
+    sessionStore = new pgSession({
+        conObject: {
+            connectionString: process.env.DATABASE_URL,
+            ssl: { rejectUnauthorized: false }
+        },
+        createTableIfMissing: true,
+        tableName: 'session'
+    })
+}
+
 if (isProduction) {
     app.set('trust proxy', 1)
 }
@@ -27,10 +42,12 @@ app.use(session({
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
+    store: sessionStore, // Use PostgreSQL store in production, MemoryStore in dev
     cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: isProduction
+        secure: isProduction,
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }))
 
