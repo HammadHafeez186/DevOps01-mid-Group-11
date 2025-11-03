@@ -108,3 +108,32 @@ PORT=3000
 ```
 
 **No more Gmail credentials exposed! 🔒✅**
+
+## 🔐 **NEW: Password Reset Feature**
+
+Added secure password reset functionality:
+
+### **Features:**
+- 🔐 **Secure tokens**: One-time use reset tokens
+- ⏰ **Time-limited**: 1-hour expiration for security
+- 📧 **Professional emails**: HTML templates with tabeeb.email domain
+- 🎨 **Consistent styling**: Matches existing auth UI
+- 🛡️ **Privacy protection**: Doesn't reveal if email exists
+
+### **User Flow:**
+1. Click "Forgot your password?" on login page
+2. Enter email address
+3. Receive reset link via email (if account exists)
+4. Click link to set new password
+5. Return to login with new credentials
+
+### **Railway Variables Needed:**
+```bash
+# Add these to your Railway environment:
+EMAIL_SERVICE=resend
+RESEND_API_KEY=re_your_actual_api_key_here
+EMAIL_FROM=DevOps Articles <noreply@tabeeb.email>
+APP_URL=https://web-production-cf2cb.up.railway.app
+```
+
+**Complete authentication system ready! 🚀**
