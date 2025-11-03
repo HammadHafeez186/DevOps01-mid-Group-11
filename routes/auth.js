@@ -295,11 +295,21 @@ router.post('/login', redirectIfAuthenticated, asyncHandler(async(req, res) => {
         return
     }
 
+    const keepLoggedIn = req.body.keepLoggedIn === 'true'
+
+    // Set extended session if "keep me logged in" is checked
+    if (keepLoggedIn) {
+        req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000 // 7 days
+        req.session.keepLoggedIn = true
+    }
+
     req.session.user = { id: user.id, email: user.email }
+    req.session.loginTime = Date.now()
+
     const redirectTarget = req.session.redirectTo || '/articles'
     delete req.session.redirectTo
 
-    setFlash(req, 'success', 'Signed in successfully.')
+    setFlash(req, 'success', `Signed in successfully${keepLoggedIn ? ' (7 days)' : ''}.`)
     res.redirect(redirectTarget)
 }))
 
@@ -330,10 +340,10 @@ const generateResetToken = () => {
 const sendPasswordResetEmail = async(email, resetToken, req) => {
     const from = process.env.EMAIL_FROM || 'DevOps Articles <noreply@tabeeb.email>'
     const appName = process.env.APP_NAME || 'DevOps Articles'
-    
+
     // Build base URL from request or environment variable
     let baseUrl = process.env.APP_URL
-    
+
     if (!baseUrl) {
         // Try to detect Railway domain
         if (process.env.RAILWAY_STATIC_URL) {
@@ -347,7 +357,7 @@ const sendPasswordResetEmail = async(email, resetToken, req) => {
             baseUrl = `${protocol}://${host}`
         }
     }
-    
+
     const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`
 
     await sendMail({
