@@ -108,7 +108,7 @@ router.get('/articles', requireAdmin, asyncHandler(async(req, res) => {
         order: [['createdAt', 'DESC']],
         include: [{
             model: User,
-            as: 'author',
+            as: 'owner',
             attributes: ['id', 'email']
         }]
     })
