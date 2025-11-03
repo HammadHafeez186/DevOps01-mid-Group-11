@@ -48,6 +48,11 @@ module.exports = (sequelize, DataTypes) => {
             resetTokenExpiresAt: {
                 type: DataTypes.DATE,
                 allowNull: true
+            },
+            isAdmin: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
             }
         },
         {

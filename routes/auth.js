@@ -594,4 +594,74 @@ router.post('/reset-password', redirectIfAuthenticated, asyncHandler(async(req, 
     }
 }))
 
+// Admin Authentication Routes
+router.get('/admin/login', redirectIfAuthenticated, (req, res) => {
+    res.render('auth/admin-login', {
+        email: req.query.email || '',
+        errors: []
+    })
+})
+
+router.post('/admin/login', redirectIfAuthenticated, asyncHandler(async(req, res) => {
+    const emailRaw = req.body.email || ''
+    const email = normalizeEmail(emailRaw)
+    const password = req.body.password || ''
+    const keepLoggedIn = req.body.keepLoggedIn === 'true'
+    const errors = []
+
+    if (!email) {
+        errors.push('Email is required.')
+    }
+    if (!password) {
+        errors.push('Password is required.')
+    }
+
+    if (errors.length > 0) {
+        res.status(400).render('auth/admin-login', {
+            email: emailRaw,
+            errors
+        })
+        return
+    }
+
+    const user = await User.findOne({ where: { email } })
+
+    if (!user || !user.isVerified || !user.passwordHash || !user.isAdmin) {
+        res.status(401).render('auth/admin-login', {
+            email: emailRaw,
+            errors: ['Invalid admin credentials or insufficient privileges.']
+        })
+        return
+    }
+
+    const passwordMatches = await bcrypt.compare(password, user.passwordHash)
+
+    if (!passwordMatches) {
+        res.status(401).render('auth/admin-login', {
+            email: emailRaw,
+            errors: ['Invalid admin credentials.']
+        })
+        return
+    }
+
+    // Set extended session if "keep me logged in" is checked
+    if (keepLoggedIn) {
+        req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000 // 7 days
+        req.session.keepLoggedIn = true
+    }
+
+    req.session.user = {
+        id: user.id,
+        email: user.email,
+        isAdmin: user.isAdmin
+    }
+    req.session.loginTime = Date.now()
+
+    const redirectTarget = req.session.redirectTo || '/admin'
+    delete req.session.redirectTo
+
+    setFlash(req, 'success', `Welcome, Administrator! ${keepLoggedIn ? '(7 days)' : ''}`)
+    res.redirect(redirectTarget)
+}))
+
 module.exports = router
