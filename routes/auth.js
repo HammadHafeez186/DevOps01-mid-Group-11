@@ -327,10 +327,28 @@ const generateResetToken = () => {
     return crypto.randomBytes(32).toString('hex')
 }
 
-const sendPasswordResetEmail = async(email, resetToken) => {
+const sendPasswordResetEmail = async(email, resetToken, req) => {
     const from = process.env.EMAIL_FROM || 'DevOps Articles <noreply@tabeeb.email>'
     const appName = process.env.APP_NAME || 'DevOps Articles'
-    const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
+    
+    // Build base URL from request or environment variable
+    let baseUrl = process.env.APP_URL
+    
+    if (!baseUrl) {
+        // Try to detect Railway domain
+        if (process.env.RAILWAY_STATIC_URL) {
+            baseUrl = process.env.RAILWAY_STATIC_URL
+        } else if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+            baseUrl = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
+        } else {
+            // Fallback to request headers
+            const protocol = req.get('x-forwarded-proto') || req.protocol || 'https'
+            const host = req.get('x-forwarded-host') || req.get('host')
+            baseUrl = `${protocol}://${host}`
+        }
+    }
+    
+    const resetUrl = `${baseUrl}/auth/reset-password?token=${resetToken}`
 
     await sendMail({
         from,
@@ -443,7 +461,7 @@ router.post('/forgot-password', redirectIfAuthenticated, asyncHandler(async(req,
             await user.save()
 
             // Send reset email
-            await sendPasswordResetEmail(email, resetToken)
+            await sendPasswordResetEmail(email, resetToken, req)
         }
 
         // Always show success message for security (don't reveal if email exists)
