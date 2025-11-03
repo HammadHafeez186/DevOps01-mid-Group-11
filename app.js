@@ -5,7 +5,7 @@ const session = require('express-session')
 const methodOverride = require('method-override')
 const articlesRouter = require('./routes/articles')
 const authRouter = require('./routes/auth')
-const { requireAuth } = require('./middleware/auth')
+const { requireAuth, blockAdminFromUserRoutes } = require('./middleware/auth')
 const { baseUploadDir } = require('./middleware/uploads')
 
 const isProduction = process.env.NODE_ENV === 'production'
@@ -91,14 +91,14 @@ app.get('/health', (req, res) => {
     res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() })
 })
 
-app.get('/', (req, res) => {
+app.get('/', blockAdminFromUserRoutes, (req, res) => {
     res.redirect('/articles')
 })
 
 app.use('/auth', authRouter)
 app.use('/admin', require('./routes/admin'))
 app.use('/complaints', require('./routes/complaints'))
-app.use('/articles', requireAuth, articlesRouter)
+app.use('/articles', requireAuth, blockAdminFromUserRoutes, articlesRouter)
 
 app.use((req, res) => {
     const message = 'Route Not Found'
