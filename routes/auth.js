@@ -664,4 +664,39 @@ router.post('/admin/login', redirectIfAuthenticated, asyncHandler(async(req, res
     res.redirect(redirectTarget)
 }))
 
+// TEMPORARY DEVELOPMENT ROUTE - REMOVE IN PRODUCTION
+// Access: GET /auth/make-admin?email=your@email.com
+router.get('/make-admin', asyncHandler(async(req, res) => {
+    const email = req.query.email
+    
+    if (!email) {
+        return res.status(400).json({ 
+            error: 'Email parameter required. Usage: /auth/make-admin?email=user@example.com' 
+        })
+    }
+
+    const user = await User.findOne({ where: { email } })
+    
+    if (!user) {
+        return res.status(404).json({ 
+            error: `No user found with email: ${email}` 
+        })
+    }
+
+    if (user.isAdmin) {
+        return res.json({ 
+            message: `User ${email} is already an admin`,
+            user: { id: user.id, email: user.email, isAdmin: user.isAdmin }
+        })
+    }
+
+    await user.update({ isAdmin: true })
+    
+    res.json({ 
+        success: true,
+        message: `User ${email} is now an admin!`,
+        user: { id: user.id, email: user.email, isAdmin: user.isAdmin }
+    })
+}))
+
 module.exports = router

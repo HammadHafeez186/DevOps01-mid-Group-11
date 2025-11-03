@@ -53,6 +53,19 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.BOOLEAN,
                 allowNull: false,
                 defaultValue: false
+            },
+            isBlocked: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
+            blockedAt: {
+                type: DataTypes.DATE,
+                allowNull: true
+            },
+            blockedBy: {
+                type: DataTypes.INTEGER,
+                allowNull: true
             }
         },
         {

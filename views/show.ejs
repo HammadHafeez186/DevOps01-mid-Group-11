@@ -316,6 +316,11 @@
                 <i class="fas fa-pen-to-square"></i>
                 Edit Article
               </a>
+            <% } else { %>
+              <a href="/complaints/new?type=article&id=<%= id %>" class="btn btn-outline-danger btn-pill">
+                <i class="fas fa-flag"></i>
+                Report Article
+              </a>
             <% } %>
           </div>
           <% if (isOwner) { %>

@@ -229,7 +229,10 @@ const deleteMediaRecords = async(mediaIds = [], userId) => {
 
 router.get('/', asyncHandler(async(req, res) => {
     const searchTerm = (req.query.search || '').trim()
-    const where = { visibility: 'public' }
+    const where = {
+        visibility: 'public',
+        isHidden: false  // Hide articles that have been hidden by admin
+    }
     const searchClause = buildSearchClause(searchTerm)
 
     if (searchClause) {

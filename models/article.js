@@ -70,6 +70,19 @@ module.exports = (sequelize, DataTypes) => {
             userId: {
                 type: DataTypes.INTEGER,
                 allowNull: true
+            },
+            isHidden: {
+                type: DataTypes.BOOLEAN,
+                allowNull: false,
+                defaultValue: false
+            },
+            hiddenAt: {
+                type: DataTypes.DATE,
+                allowNull: true
+            },
+            hiddenBy: {
+                type: DataTypes.INTEGER,
+                allowNull: true
             }
         },
         {
