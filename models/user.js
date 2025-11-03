@@ -40,6 +40,14 @@ module.exports = (sequelize, DataTypes) => {
                 type: DataTypes.BOOLEAN,
                 allowNull: false,
                 defaultValue: false
+            },
+            resetTokenHash: {
+                type: DataTypes.STRING,
+                allowNull: true
+            },
+            resetTokenExpiresAt: {
+                type: DataTypes.DATE,
+                allowNull: true
             }
         },
         {

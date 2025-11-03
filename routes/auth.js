@@ -320,4 +320,250 @@ router.post('/logout', asyncHandler(async(req, res) => {
     })
 }))
 
+// Password Reset Token Constants
+const RESET_TOKEN_EXPIRY_HOURS = 1
+
+const generateResetToken = () => {
+    return crypto.randomBytes(32).toString('hex')
+}
+
+const sendPasswordResetEmail = async(email, resetToken) => {
+    const from = process.env.EMAIL_FROM || 'DevOps Articles <noreply@tabeeb.email>'
+    const appName = process.env.APP_NAME || 'DevOps Articles'
+    const resetUrl = `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`
+
+    await sendMail({
+        from,
+        to: email,
+        subject: `${appName} - Password Reset Request`,
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { text-align: center; padding: 20px 0; border-bottom: 1px solid #eee; }
+                    .content { padding: 30px 0; }
+                    .button { display: inline-block; background: #6366f1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; }
+                    .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #eee; font-size: 14px; color: #666; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1 style="color: #6366f1; margin: 0;">🔐 Password Reset Request</h1>
+                    </div>
+                    
+                    <div class="content">
+                        <p>Hello,</p>
+                        
+                        <p>We received a request to reset your password for your <strong>${appName}</strong> account.</p>
+                        
+                        <p>Click the button below to create a new password:</p>
+                        
+                        <p style="text-align: center; margin: 30px 0;">
+                            <a href="${resetUrl}" class="button">Reset My Password</a>
+                        </p>
+                        
+                        <p><strong>This link will expire in ${RESET_TOKEN_EXPIRY_HOURS} hour${RESET_TOKEN_EXPIRY_HOURS > 1 ? 's' : ''}.</strong></p>
+                        
+                        <p>If you didn't request a password reset, you can safely ignore this email. Your password won't be changed.</p>
+                        
+                        <p>For security, this reset link can only be used once.</p>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>If the button doesn't work, copy and paste this link into your browser:</p>
+                        <p style="word-break: break-all; color: #6366f1;">${resetUrl}</p>
+                        
+                        <p style="margin-top: 20px;">
+                            <strong>${appName}</strong><br>
+                            This is an automated email, please don't reply.
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `,
+        text: [
+            `Password Reset Request - ${appName}`,
+            '',
+            'We received a request to reset your password.',
+            '',
+            `Reset your password by clicking this link: ${resetUrl}`,
+            '',
+            `This link expires in ${RESET_TOKEN_EXPIRY_HOURS} hour${RESET_TOKEN_EXPIRY_HOURS > 1 ? 's' : ''}.`,
+            '',
+            'If you didn\'t request this reset, you can ignore this email.',
+            'Your password will not be changed until you create a new one.',
+            '',
+            `- ${appName} Team`
+        ].join('\n')
+    })
+}
+
+// GET /auth/forgot-password - Show forgot password form
+router.get('/forgot-password', redirectIfAuthenticated, (req, res) => {
+    res.render('auth/forgot-password', {
+        email: req.query.email || '',
+        errors: []
+    })
+})
+
+// POST /auth/forgot-password - Send password reset email
+router.post('/forgot-password', redirectIfAuthenticated, asyncHandler(async(req, res) => {
+    const emailRaw = req.body.email || ''
+    const email = normalizeEmail(emailRaw)
+    const errors = []
+
+    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+        errors.push('Please provide a valid email address.')
+    }
+
+    if (errors.length > 0) {
+        res.status(400).render('auth/forgot-password', {
+            email: emailRaw,
+            errors
+        })
+        return
+    }
+
+    try {
+        const user = await User.findOne({ where: { email } })
+
+        if (user && user.isVerified) {
+            // Generate reset token
+            const resetToken = generateResetToken()
+            const resetTokenHash = await bcrypt.hash(resetToken, 10)
+
+            // Save token to user
+            user.resetTokenHash = resetTokenHash
+            user.resetTokenExpiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_HOURS * 60 * 60 * 1000)
+            await user.save()
+
+            // Send reset email
+            await sendPasswordResetEmail(email, resetToken)
+        }
+
+        // Always show success message for security (don't reveal if email exists)
+        setFlash(req, 'success', 'If an account with that email exists, we\'ve sent password reset instructions.')
+        res.redirect('/auth/forgot-password')
+    } catch (error) {
+        console.error('Failed to send password reset email:', error.message)
+        setFlash(req, 'danger', 'Unable to process password reset request. Please try again later.')
+        res.redirect('/auth/forgot-password')
+    }
+}))
+
+// GET /auth/reset-password - Show reset password form
+router.get('/reset-password', redirectIfAuthenticated, asyncHandler(async(req, res) => {
+    const token = req.query.token
+
+    if (!token) {
+        setFlash(req, 'danger', 'Invalid or missing reset token.')
+        res.redirect('/auth/forgot-password')
+        return
+    }
+
+    // Find user with valid token
+    const users = await User.findAll({
+        where: {
+            resetTokenExpiresAt: {
+                [require('sequelize').Op.gt]: new Date()
+            }
+        }
+    })
+
+    let validUser = null
+    for (const user of users) {
+        if (user.resetTokenHash && await bcrypt.compare(token, user.resetTokenHash)) {
+            validUser = user
+            break
+        }
+    }
+
+    if (!validUser) {
+        setFlash(req, 'danger', 'Invalid or expired reset token. Please request a new password reset.')
+        res.redirect('/auth/forgot-password')
+        return
+    }
+
+    res.render('auth/reset-password', {
+        token,
+        errors: []
+    })
+}))
+
+// POST /auth/reset-password - Process password reset
+router.post('/reset-password', redirectIfAuthenticated, asyncHandler(async(req, res) => {
+    const token = req.body.token
+    const password = req.body.password || ''
+    const confirmPassword = req.body.confirmPassword || ''
+    const errors = []
+
+    // Validation
+    if (!token) {
+        errors.push('Invalid reset token.')
+    }
+
+    if (!password || password.length < 8) {
+        errors.push('Password must be at least 8 characters long.')
+    }
+
+    if (password !== confirmPassword) {
+        errors.push('Passwords do not match.')
+    }
+
+    if (errors.length > 0) {
+        res.status(400).render('auth/reset-password', {
+            token,
+            errors
+        })
+        return
+    }
+
+    try {
+        // Find user with valid token
+        const users = await User.findAll({
+            where: {
+                resetTokenExpiresAt: {
+                    [require('sequelize').Op.gt]: new Date()
+                }
+            }
+        })
+
+        let validUser = null
+        for (const user of users) {
+            if (user.resetTokenHash && await bcrypt.compare(token, user.resetTokenHash)) {
+                validUser = user
+                break
+            }
+        }
+
+        if (!validUser) {
+            setFlash(req, 'danger', 'Invalid or expired reset token. Please request a new password reset.')
+            res.redirect('/auth/forgot-password')
+            return
+        }
+
+        // Update password and clear reset token
+        const passwordHash = await bcrypt.hash(password, 10)
+        validUser.passwordHash = passwordHash
+        validUser.resetTokenHash = null
+        validUser.resetTokenExpiresAt = null
+        await validUser.save()
+
+        setFlash(req, 'success', 'Password updated successfully! You can now sign in with your new password.')
+        res.redirect('/auth/login')
+    } catch (error) {
+        console.error('Failed to reset password:', error.message)
+        setFlash(req, 'danger', 'Unable to reset password. Please try again.')
+        res.status(500).render('auth/reset-password', {
+            token,
+            errors: ['Unable to reset password. Please try again.']
+        })
+    }
+}))
+
 module.exports = router
