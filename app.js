@@ -52,8 +52,30 @@ app.use(session({
 }))
 
 app.use((req, res, next) => {
+    // Check for session expiry
+    let showReloginPopup = false
+
+    if (req.session && req.session.user && req.session.loginTime) {
+        const now = Date.now()
+        const loginTime = req.session.loginTime
+        const sessionAge = now - loginTime
+        const maxAge = req.session.keepLoggedIn ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
+        const warningThreshold = maxAge - (2 * 60 * 60 * 1000) // 2 hours before expiry
+
+        if (sessionAge > maxAge) {
+            // Session expired
+            req.session.user = null
+            req.session.flash = { type: 'warning', message: 'Your session has expired. Please sign in again.' }
+        } else if (sessionAge > warningThreshold && !req.session.reloginWarningShown) {
+            // Show warning popup
+            showReloginPopup = true
+            req.session.reloginWarningShown = true
+        }
+    }
+
     res.locals.currentUser = req.session && req.session.user ? req.session.user : null
     res.locals.flash = req.session && req.session.flash ? req.session.flash : null
+    res.locals.showReloginPopup = showReloginPopup
 
     if (req.session && req.session.flash) {
         delete req.session.flash
@@ -74,6 +96,7 @@ app.get('/', (req, res) => {
 })
 
 app.use('/auth', authRouter)
+app.use('/admin', require('./routes/admin'))
 app.use('/articles', requireAuth, articlesRouter)
 
 app.use((req, res) => {

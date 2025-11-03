@@ -49,6 +49,12 @@
         </ul>
         <% if (currentUser) { %>
           <div class="d-flex align-items-center gap-3 ms-lg-4 mt-3 mt-lg-0">
+            <% if (currentUser.isAdmin) { %>
+              <a href="/admin" class="btn btn-warning btn-sm rounded-pill me-2">
+                <i class="fas fa-shield-alt me-1"></i>
+                Admin Panel
+              </a>
+            <% } %>
             <span class="text-white-50">
               <i class="fas fa-user-circle me-1"></i>
               <%= currentUser.email %>
@@ -305,18 +311,22 @@
               <i class="fas fa-arrow-left"></i>
               Back to Articles
             </a>
-            <a href="/articles/update/<%= id %>" class="btn btn-warning-pill btn-pill">
-              <i class="fas fa-pen-to-square"></i>
-              Edit Article
-            </a>
+            <% if (isOwner) { %>
+              <a href="/articles/update/<%= id %>" class="btn btn-warning-pill btn-pill">
+                <i class="fas fa-pen-to-square"></i>
+                Edit Article
+              </a>
+            <% } %>
           </div>
-          <form method="POST" action="/articles/<%= id %>?_method=DELETE" class="m-0">
-            <button type="submit" class="btn btn-danger-pill btn-pill"
-              onclick="return confirm('Delete this article permanently? This action cannot be undone.')">
-              <i class="fas fa-trash-alt"></i>
-              Delete
-            </button>
-          </form>
+          <% if (isOwner) { %>
+            <form method="POST" action="/articles/<%= id %>?_method=DELETE" class="m-0">
+              <button type="submit" class="btn btn-danger-pill btn-pill"
+                onclick="return confirm('Delete this article permanently? This action cannot be undone.')">
+                <i class="fas fa-trash-alt"></i>
+                Delete
+              </button>
+            </form>
+          <% } %>
         </footer>
       </article>
     </div>

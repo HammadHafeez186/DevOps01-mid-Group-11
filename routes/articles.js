@@ -257,7 +257,11 @@ router.get('/', asyncHandler(async(req, res) => {
         return
     }
 
-    res.status(200).render('index', { articles, searchTerm })
+    res.status(200).render('index', {
+        articles,
+        searchTerm,
+        currentUserId: req.session && req.session.user ? req.session.user.id : null
+    })
 }))
 
 router.get('/mine', asyncHandler(async(req, res) => {
@@ -384,7 +388,8 @@ router.get('/:id', asyncHandler(async(req, res, next) => {
 
     res.status(200).render('show', {
         ...articlePlain,
-        media: mediaWithEmbeds
+        media: mediaWithEmbeds,
+        isOwner
     })
 }))
 
