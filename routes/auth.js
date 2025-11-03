@@ -314,18 +314,25 @@ router.post('/login', redirectIfAuthenticated, asyncHandler(async(req, res) => {
     }
     req.session.loginTime = Date.now()
 
-    const redirectTarget = req.session.redirectTo || '/articles'
+    // Redirect admins to admin dashboard, regular users to articles
+    let redirectTarget = req.session.redirectTo
+    if (!redirectTarget) {
+        redirectTarget = (user.isAdmin) ? '/admin' : '/articles'
+    }
     delete req.session.redirectTo
 
     setFlash(req, 'success', `Signed in successfully${keepLoggedIn ? ' (7 days)' : ''}.`)
     res.redirect(redirectTarget)
 }))
 
-router.post('/logout', asyncHandler(async(req, res) => {
+// Logout route - supports both GET and POST
+const handleLogout = asyncHandler(async(req, res) => {
     if (!req.session) {
         res.redirect('/auth/login')
         return
     }
+
+    const wasAdmin = req.session.user && req.session.user.isAdmin
 
     req.session.user = null
 
@@ -334,9 +341,17 @@ router.post('/logout', asyncHandler(async(req, res) => {
             console.error('Failed to destroy session on logout:', error.message)
         }
 
-        res.redirect('/auth/login')
+        // Redirect admin users to admin login, regular users to regular login
+        if (wasAdmin) {
+            res.redirect('/auth/admin/login')
+        } else {
+            res.redirect('/auth/login')
+        }
     })
-}))
+})
+
+router.get('/logout', handleLogout)
+router.post('/logout', handleLogout)
 
 // Password Reset Token Constants
 const RESET_TOKEN_EXPIRY_HOURS = 1

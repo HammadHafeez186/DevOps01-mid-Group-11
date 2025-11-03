@@ -54,7 +54,43 @@ const redirectIfAuthenticated = (req, res, next) => {
     next()
 }
 
+// Block admins from accessing regular user features - admins are admin-only
+const blockAdminFromUserRoutes = (req, res, next) => {
+    if (req.session && req.session.user && req.session.user.isAdmin) {
+        // Define allowed routes for admins
+        const allowedAdminRoutes = [
+            '/admin',           // Admin panel
+            '/auth/logout',     // Logout
+            '/auth/admin',      // Admin auth routes
+            '/health',          // Health check
+            '/uploads',         // File access
+            '/css',             // Static assets
+            '/js'              // Static assets
+        ]
+
+        // Check if current path is allowed for admins
+        const isAllowedRoute = allowedAdminRoutes.some(route => req.path.startsWith(route))
+
+        if (!isAllowedRoute) {
+            // Block admin from regular user routes
+            if (wantsJson(req)) {
+                return res.status(403).json({
+                    message: 'Administrators cannot access regular user features. Please use the admin panel.'
+                })
+            }
+
+            req.session.flash = {
+                type: 'warning',
+                message: 'Administrators can only access admin features. You have been redirected to the admin panel.'
+            }
+            return res.redirect('/admin')
+        }
+    }
+    next()
+}
+
 module.exports = {
     requireAuth,
-    redirectIfAuthenticated
+    redirectIfAuthenticated,
+    blockAdminFromUserRoutes
 }
