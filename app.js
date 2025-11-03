@@ -97,6 +97,7 @@ app.get('/', (req, res) => {
 
 app.use('/auth', authRouter)
 app.use('/admin', require('./routes/admin'))
+app.use('/complaints', require('./routes/complaints'))
 app.use('/articles', requireAuth, articlesRouter)
 
 app.use((req, res) => {
