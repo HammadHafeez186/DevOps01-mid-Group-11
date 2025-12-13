@@ -41,9 +41,11 @@ spec:
               key: DB_PORT
       containers:
       - name: app
-        # Using local minikube image; for ECR use full URI
-        image: devopsproject01-app:v3
-        imagePullPolicy: Never
+        # Using ECR image
+        image: 322467327252.dkr.ecr.us-east-1.amazonaws.com/devops-articles:latest
+        imagePullPolicy: Always
+        command: ["/bin/sh"]
+        args: ["-c", "npx sequelize-cli db:migrate --env production && node server.js"]
         ports:
         - containerPort: 3000
           name: http
@@ -90,11 +92,6 @@ spec:
             configMapKeyRef:
               name: app-config
               key: AWS_REGION
-        - name: AWS_SECRETS_MANAGER_ID
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: AWS_SECRETS_MANAGER_ID
         - name: EMAIL_FROM
           valueFrom:
             configMapKeyRef:
@@ -109,23 +106,23 @@ spec:
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: app-secret
+              name: app-secrets
               key: DB_PASSWORD
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DATABASE_URL
         - name: RESEND_API_KEY
           valueFrom:
             secretKeyRef:
-              name: app-secret
+              name: app-secrets
               key: RESEND_API_KEY
         - name: SESSION_SECRET
           valueFrom:
             secretKeyRef:
-              name: app-secret
+              name: app-secrets
               key: SESSION_SECRET
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: app-secret
-              key: DATABASE_URL
         resources:
           requests:
             memory: "256Mi"
