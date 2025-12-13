@@ -32,7 +32,18 @@ A containerized Node.js application with Express, Sequelize ORM, and PostgreSQL 
    # Edit .env with your preferred values
    ```
 
-3. **Start the application**
+3. **Configure Kubernetes secrets (for K8s deployment)**
+   ```bash
+   cp k8s/02-secret.yaml.example k8s/02-secret.yaml
+   # Edit k8s/02-secret.yaml and replace all REPLACE_WITH_* placeholders:
+   # - DB_PASSWORD: Your PostgreSQL password
+   # - RESEND_API_KEY: Your Resend API key for email
+   # - SESSION_SECRET: Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+   # - DATABASE_URL: Full PostgreSQL connection string
+   # NOTE: Never commit k8s/02-secret.yaml - it's in .gitignore
+   ```
+
+4. **Start the application**
    ```bash
    docker-compose up --build
    ```

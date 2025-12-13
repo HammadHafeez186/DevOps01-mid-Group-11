@@ -1,0 +1,26 @@
+# AWS Configuration
+aws_region = "us-east-1"
+project_name = "devops-articles"
+environment = "dev"
+owner = "your-team-name"
+
+# VPC Configuration
+vpc_cidr = "10.0.0.0/16"
+availability_zones = ["us-east-1a", "us-east-1b"]
+
+# EKS Configuration
+eks_cluster_version = "1.28"
+eks_node_instance_types = ["t3.medium"]
+eks_desired_capacity = 2
+eks_min_capacity = 1
+eks_max_capacity = 4
+
+# RDS Configuration
+db_instance_class = "db.t3.micro"
+db_allocated_storage = 20
+db_name = "devops_db"
+db_username = "postgres"
+db_port = 5432
+
+# Security - IMPORTANT: Change this to your IP for production!
+allowed_cidr_blocks = ["0.0.0.0/0"]

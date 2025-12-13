@@ -35,6 +35,10 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-Hammad1234}
       DB_NAME: ${DB_NAME:-devops_db}
       DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-Hammad1234}@db:5432/${DB_NAME:-devops_db}
+      # Resend Email Configuration (Primary)
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-DevOps Articles <noreply@tabeebemail.me>}
+      APP_URL: ${APP_URL:-http://localhost:3000}
     ports:
       - "3000:3000"
     depends_on:

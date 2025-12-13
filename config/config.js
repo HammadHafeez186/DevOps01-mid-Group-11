@@ -7,6 +7,16 @@ if (process.env.NODE_ENV !== 'production') {
     }
 }
 
+const connectTimeoutDialectOptions = { connectTimeout: 60000 }
+const nonSslDialectOptions = { ...connectTimeoutDialectOptions }
+const sslDialectOptions = {
+    ...connectTimeoutDialectOptions,
+    ssl: { require: true, rejectUnauthorized: false }
+}
+
+// Allow K8s/local Postgres without SSL by setting DB_SSL=false
+const shouldUseSSL = process.env.DB_SSL !== 'false'
+
 module.exports = {
     development: {
         // All values come from environment variables; no hardcoded secrets here.
@@ -16,10 +26,7 @@ module.exports = {
         host: process.env.DB_HOST || null,
         port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
         dialect: 'postgres',
-        dialectOptions: {
-            connectTimeout: 60000,
-            ssl: false
-        }
+        dialectOptions: nonSslDialectOptions
     },
     test: {
         username: process.env.TEST_DB_USERNAME || null,
@@ -28,10 +35,7 @@ module.exports = {
         host: process.env.TEST_DB_HOST || null,
         port: process.env.TEST_DB_PORT ? Number(process.env.TEST_DB_PORT) : undefined,
         dialect: 'postgres',
-        dialectOptions: {
-            connectTimeout: 60000,
-            ssl: false
-        }
+        dialectOptions: nonSslDialectOptions
     },
     docker: {
         username: process.env.DB_USERNAME || null,
@@ -40,19 +44,13 @@ module.exports = {
         host: process.env.DB_HOST || null,
         port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
         dialect: 'postgres',
-        dialectOptions: {
-            connectTimeout: 60000,
-            ssl: false
-        }
+        dialectOptions: nonSslDialectOptions
     },
     production: {
-        // In production (Railway), rely solely on DATABASE_URL
+        // In production (Railway/K8s), rely solely on DATABASE_URL
         use_env_variable: 'DATABASE_URL',
         dialect: 'postgres',
-        dialectOptions: {
-            connectTimeout: 60000,
-            ssl: { require: true, rejectUnauthorized: false }
-        },
+        dialectOptions: shouldUseSSL ? sslDialectOptions : nonSslDialectOptions,
         logging: false
     }
 }

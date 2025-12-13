@@ -22,6 +22,8 @@
   "author": "ridhanf",
   "license": "MIT",
   "dependencies": {
+    "@aws-sdk/client-secrets-manager": "^3.699.0",
+    "axios": "^1.13.1",
     "bcryptjs": "^2.4.3",
     "connect-pg-simple": "^10.0.0",
     "dotenv": "^17.2.3",

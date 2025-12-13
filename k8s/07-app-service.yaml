@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-service
+  namespace: devops-articles
+  labels:
+    app: devops-articles
+    component: app
+spec:
+  type: NodePort  # Minikube NodePort
+  selector:
+    app: devops-articles
+    component: app
+  ports:
+  - port: 80
+    targetPort: 3000
+    nodePort: 30090
+    protocol: TCP
+    name: http
+  # For cloud: add sessionAffinity for sticky sessions if needed
+  # sessionAffinity: ClientIP
