@@ -61,7 +61,17 @@ resource "aws_security_group" "eks_nodes" {
 }
 
 # Security Group Rules for EKS Cluster to communicate with worker nodes
-resource "aws_security_group_rule" "cluster_to_nodes" {
+resource "aws_security_group_rule" "nodes_to_cluster" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.eks_cluster.id
+  source_security_group_id = aws_security_group.eks_nodes.id
+  description              = "Allow worker nodes to communicate with cluster API"
+}
+
+resource "aws_security_group_rule" "cluster_to_nodes_443" {
   type                     = "ingress"
   from_port                = 443
   to_port                  = 443
@@ -69,6 +79,16 @@ resource "aws_security_group_rule" "cluster_to_nodes" {
   security_group_id        = aws_security_group.eks_nodes.id
   source_security_group_id = aws_security_group.eks_cluster.id
   description              = "Allow pods to communicate with the cluster API Server"
+}
+
+resource "aws_security_group_rule" "cluster_to_nodes_kubelet" {
+  type                     = "ingress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.eks_nodes.id
+  source_security_group_id = aws_security_group.eks_cluster.id
+  description              = "Allow cluster to communicate with kubelet on worker nodes"
 }
 
 # Security Group for RDS
