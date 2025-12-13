@@ -17,7 +17,7 @@ Your DevOps Articles application now has a robust, multi-layered email delivery 
 ### 2. **Resend (Backup)**
 - **Type**: HTTP API
 - **Status**: ✅ Configured & Ready
-- **API Key**: `re_8AmZ4VaA_Kw2gnEeCVpwZYdWWqASPuZrw`
+- **API Key**: `[REDACTED - Set via environment variable]`
 - **Use Case**: Email forwarding fallback
 
 ## Fallback Chain
@@ -78,7 +78,7 @@ POSTAL_USERNAME=apikey
 EMAIL_FROM=DevOps Articles <noreply@tabeeb.email>
 
 # Resend Configuration (Backup)
-RESEND_API_KEY=re_8AmZ4VaA_Kw2gnEeCVpwZYdWWqASPuZrw
+RESEND_API_KEY=your_resend_api_key_here
 
 # Application
 APP_URL=http://localhost:3000 (or your production URL)
@@ -175,10 +175,10 @@ Or if fallback is needed:
 ### Railway Setup
 ```bash
 # Set in Railway environment variables
-POSTAL_API_KEY=YzpDpWMnPtswA6wNWQLaIirB
+POSTAL_API_KEY=your_postal_api_key_here
 POSTAL_SERVER=postal.mailsytems.live
 POSTAL_PORT=587
-RESEND_API_KEY=re_8AmZ4VaA_Kw2gnEeCVpwZYdWWqASPuZrw
+RESEND_API_KEY=your_resend_api_key_here
 APP_URL=https://your-production-url.com
 ```
 

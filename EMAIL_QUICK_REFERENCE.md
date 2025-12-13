@@ -19,7 +19,7 @@ PRIMARY SERVICE
 
 BACKUP SERVICE
 ├─ Type: Resend API
-├─ API Key: re_8AmZ4VaA_Kw2gnEeCVpwZYdWWqASPuZrw
+├─ API Key: [REDACTED - Set via environment variable]
 └─ Purpose: Email forwarding fallback
 
 FALLBACK ORDER
@@ -62,13 +62,13 @@ FALLBACK ORDER
 
 ```bash
 # Postal Configuration
-export POSTAL_API_KEY="YzpDpWMnPtswA6wNWQLaIirB"
+export POSTAL_API_KEY="your_postal_api_key_here"
 export POSTAL_SERVER="postal.mailsytems.live"
 export POSTAL_PORT="587"
 export POSTAL_USERNAME="apikey"
 
 # Resend Configuration
-export RESEND_API_KEY="re_8AmZ4VaA_Kw2gnEeCVpwZYdWWqASPuZrw"
+export RESEND_API_KEY="your_resend_api_key_here"
 
 # Application
 export EMAIL_FROM="DevOps Articles <noreply@tabeeb.email>"

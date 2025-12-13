@@ -10,7 +10,7 @@
   - [x] DNS Records verified (SPF, DKIM, MX, Return Path)
 
 - [x] Resend email service configured
-  - [x] API Key: `re_8AmZ4VaA_Kw2gnEeCVpwZYdWWqASPuZrw`
+  - [x] API Key: `[REDACTED - Set via environment variable]`
   - [x] Added as backup service
   - [x] Fallback mechanism implemented
 
