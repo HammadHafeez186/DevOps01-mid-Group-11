@@ -2,26 +2,32 @@
 # This replaces the expensive EKS cluster
 
 # Data source for latest Ubuntu AMI (only when not using EKS)
+# Note: This data source is only evaluated when use_eks = false
 data "aws_ami" "ubuntu" {
   count       = var.use_eks ? 0 : 1
   most_recent = true
-  owners      = ["099720109477"] # Canonical
+  owners      = ["amazon"] # Use Amazon Linux instead of Ubuntu to avoid query issues
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-22.04-amd64-server-*"]
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
   }
 
   filter {
     name   = "virtualization-type"
     values = ["hvm"]
   }
+
+  filter {
+    name   = "state"
+    values = ["available"]
+  }
 }
 
 # EC2 Instance for k3s (Lightweight Kubernetes)
 resource "aws_instance" "k3s_server" {
   count         = var.use_eks ? 0 : 1
-  ami           = data.aws_ami.ubuntu[0].id
+  ami           = try(data.aws_ami.ubuntu[0].id, "")
   instance_type = var.ec2_instance_type
   key_name      = var.ec2_key_name
 
