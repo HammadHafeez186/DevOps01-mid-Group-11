@@ -318,6 +318,9 @@ jobs:
         
     - name: 🎭 Deploy Application with Ansible
       working-directory: ./ansible
+      env:
+        RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
       run: ansible-playbook playbook.yaml -v
         
     - name: ✅ Verify Deployment
