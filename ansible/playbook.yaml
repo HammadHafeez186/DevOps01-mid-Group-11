@@ -67,16 +67,22 @@
     - name: Get RDS endpoint from Terraform outputs
       shell: |
         cd ../infra
-        terraform output -raw rds_address 2>/dev/null || echo "devops-articles-postgres.cwjkesms8ego.us-east-1.rds.amazonaws.com"
+        terraform output -raw rds_address
       register: rds_endpoint
       changed_when: false
+      failed_when: rds_endpoint.rc != 0
       
     - name: Get RDS password from AWS Secrets Manager
       shell: |
-        SECRET_NAME=$(aws secretsmanager list-secrets --query "SecretList[?contains(Name, 'devops-articles-db-password')].Name" --output text | tail -1)
+        SECRET_NAME=$(aws secretsmanager list-secrets --query "SecretList[?contains(Name, 'devops-articles-db-password')].Name | sort(@) | [-1]" --output text)
+        if [ -z "$SECRET_NAME" ]; then
+          echo "ERROR: No RDS password secret found" >&2
+          exit 1
+        fi
         aws secretsmanager get-secret-value --secret-id "$SECRET_NAME" --query 'SecretString' --output text | jq -r '.password'
       register: rds_password
       changed_when: false
+      failed_when: rds_password.rc != 0
       no_log: true
 
     - name: URL encode password for DATABASE_URL
