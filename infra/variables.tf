@@ -32,7 +32,7 @@ variable "vpc_cidr" {
 variable "availability_zones" {
   description = "Availability zones for subnets"
   type        = list(string)
-  default     = ["us-east-1a"] # Single AZ for free tier
+  default     = ["us-east-1a", "us-east-1b"] # Minimum 2 AZs for RDS
 }
 
 # EC2 Configuration (Free Tier Alternative to EKS)
