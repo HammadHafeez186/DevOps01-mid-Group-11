@@ -31,10 +31,10 @@ resource "aws_iam_role_policy_attachment" "eks_vpc_resource_controller" {
 
 # EKS Cluster
 resource "aws_eks_cluster" "main" {
-  count       = var.use_eks ? 1 : 0
-  name_prefix = "${var.project_name}-eks-cluster-"
-  role_arn    = aws_iam_role.eks_cluster.arn
-  version     = var.eks_cluster_version
+  count    = var.use_eks ? 1 : 0
+  name     = "${var.project_name}-eks-cluster"
+  role_arn = aws_iam_role.eks_cluster.arn
+  version  = var.eks_cluster_version
 
   vpc_config {
     subnet_ids              = concat(aws_subnet.public[*].id, aws_subnet.private[*].id)
