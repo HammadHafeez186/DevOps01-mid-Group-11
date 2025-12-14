@@ -64,31 +64,40 @@
       debug:
         msg: "Secrets {{ 'exist' if secret_check.resources else 'will be created automatically' }}"
 
-    - name: Get RDS endpoint from Terraform outputs
+    - name: Check if Terraform state exists
       shell: |
         cd ../infra
-        terraform output -raw rds_address
+        terraform output -raw rds_address 2>/dev/null || echo ""
       register: rds_endpoint
       changed_when: false
-      failed_when: rds_endpoint.rc != 0
+      failed_when: false
       
     - name: Get RDS password from AWS Secrets Manager
       shell: |
         SECRET_NAME=$(aws secretsmanager list-secrets --query "SecretList[?contains(Name, 'devops-articles-db-password')].Name | sort(@) | [-1]" --output text)
         if [ -z "$SECRET_NAME" ]; then
-          echo "ERROR: No RDS password secret found" >&2
-          exit 1
+          echo ""
+        else
+          aws secretsmanager get-secret-value --secret-id "$SECRET_NAME" --query 'SecretString' --output text 2>/dev/null | jq -r '.password' 2>/dev/null || echo ""
         fi
-        aws secretsmanager get-secret-value --secret-id "$SECRET_NAME" --query 'SecretString' --output text | jq -r '.password'
       register: rds_password
       changed_when: false
-      failed_when: rds_password.rc != 0
+      failed_when: false
       no_log: true
+
+    - name: Check if RDS credentials were retrieved
+      set_fact:
+        has_rds_credentials: "{{ rds_endpoint.stdout != '' and rds_password.stdout != '' }}"
+      
+    - name: Display RDS credential status
+      debug:
+        msg: "{{ 'Using RDS credentials from Terraform/Secrets Manager' if has_rds_credentials else 'Skipping RDS credential update - using existing secrets' }}"
 
     - name: URL encode password for DATABASE_URL
       set_fact:
         encoded_password: "{{ rds_password.stdout | urlencode }}"
       no_log: true
+      when: has_rds_credentials
 
     - name: Update ConfigMap with actual RDS endpoint
       kubernetes.core.k8s:
@@ -112,8 +121,9 @@
             APP_URL: "http://localhost:3000"
             COOKIE_SECURE: "false"
             NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      when: has_rds_credentials
 
-    - name: Create or update app-secrets
+    - name: Create or update app-secrets with RDS credentials
       kubernetes.core.k8s:
         state: present
         definition:
@@ -129,6 +139,23 @@
             SESSION_SECRET: "{{ session_secret }}"
             RESEND_API_KEY: "{{ resend_api_key }}"
       no_log: true
+      when: has_rds_credentials
+      
+    - name: Update app-secrets with application secrets only
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: app-secrets
+            namespace: "{{ k8s_namespace }}"
+          type: Opaque
+          stringData:
+            SESSION_SECRET: "{{ session_secret }}"
+            RESEND_API_KEY: "{{ resend_api_key }}"
+      no_log: true
+      when: not has_rds_credentials and secret_check.resources | length > 0
 
     - name: Apply ServiceAccount
       kubernetes.core.k8s:
