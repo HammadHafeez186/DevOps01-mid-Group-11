@@ -1,7 +1,7 @@
 node_modules/
 .env
-.env.*
-.env.example
+.env.local
+.env.*.local
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -10,7 +10,14 @@ yarn-error.log*
 coverage/
 dist/
 build/
+
+# Documentation files rejected from version control
 VIVA-CHEATSHEET.md
+PROJECT_SUMMARY.md
+QUICK_REFERENCE.md
+GIT_SUBMISSION_GUIDE.md
+DEPLOYMENT_CHECKLIST.md
+RAILWAY_SETUP.md
 
 # Kubernetes secrets (keep sample only)
 k8s/02-secret.yaml
@@ -32,6 +39,8 @@ infra/.terraform/
 infra/.terraform.lock.hcl
 infra/crash.log
 infra/crash.*.log
+infra/ebs-csi-policy.json
+infra/ebs-csi-trust-policy.json
 
 # AWS credentials
 *.pem
