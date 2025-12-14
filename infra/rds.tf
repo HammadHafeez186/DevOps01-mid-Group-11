@@ -120,7 +120,7 @@ resource "aws_db_instance" "postgres" {
 
 # IAM Role for RDS Enhanced Monitoring
 resource "aws_iam_role" "rds_monitoring" {
-  name = "${var.project_name}-rds-monitoring-role"
+  name_prefix = "${var.project_name}-rds-monitoring-role-"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -145,17 +145,14 @@ resource "aws_iam_role_policy_attachment" "rds_monitoring" {
 
 # CloudWatch Log Group for RDS logs
 resource "aws_cloudwatch_log_group" "postgres" {
-  name              = "/aws/rds/instance/${var.project_name}-postgres/postgresql"
+  name_prefix       = "/aws/rds/instance/${var.project_name}-postgres-"
   retention_in_days = 7
 
   tags = {
     Name = "${var.project_name}-postgres-logs"
   }
 
-  # If the log group already exists from a previous run, avoid recreate conflicts.
   lifecycle {
-    create_before_destroy = false
-    prevent_destroy       = false
-    ignore_changes        = [name]
+    create_before_destroy = true
   }
 }
