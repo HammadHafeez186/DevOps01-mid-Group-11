@@ -281,12 +281,12 @@ jobs:
       working-directory: ./infra
       run: terraform apply -auto-approve -input=false tfplan
 
-  # Stage 6: Deploy Application (parallel with Monitoring)
+  # Stage 6: Deploy Application (after Terraform and Docker)
   deploy-app:
     name: 🚀 Deploy Application
     runs-on: ubuntu-latest
-    needs: [build-docker]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build-docker, terraform]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (success() || needs.terraform.result == 'skipped')
     environment: production
     
     steps:
@@ -327,11 +327,12 @@ jobs:
         kubectl rollout status deployment/app -n ${{ env.NAMESPACE }} --timeout=300s
 
   # Stage 6: Deploy Monitoring (parallel with Application)
+  # Stage 6: Deploy Monitoring (after Terraform and Docker)
   deploy-monitoring:
     name: 📊 Deploy Monitoring
     runs-on: ubuntu-latest
-    needs: [build-docker]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build-docker, terraform]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (success() || needs.terraform.result == 'skipped')
     
     steps:
     - name: 📥 Checkout code

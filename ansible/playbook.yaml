@@ -59,23 +59,73 @@
       
     - name: Display secret status
       debug:
-        msg: "Secrets {{ 'exist' if secret_check.resources else 'do not exist - please create manually' }}"
-        
-    - name: Apply PostgreSQL StatefulSet
-      kubernetes.core.k8s:
-        state: present
-        src: "{{ k8s_manifests_dir }}/04-postgres-statefulset.yaml"
-        namespace: "{{ k8s_namespace }}"
-      when: "'postgres' in lookup('file', k8s_manifests_dir + '/04-postgres-statefulset.yaml')"
-      ignore_errors: yes
+        msg: "Secrets {{ 'exist' if secret_check.resources else 'will be created automatically' }}"
+
+    - name: Get RDS endpoint from Terraform outputs
+      shell: |
+        cd ../infra
+        terraform output -raw rds_address 2>/dev/null || echo "devops-articles-postgres.cwjkesms8ego.us-east-1.rds.amazonaws.com"
+      register: rds_endpoint
+      changed_when: false
       
-    - name: Apply PostgreSQL Service
+    - name: Get RDS password from AWS Secrets Manager
+      shell: |
+        SECRET_NAME=$(aws secretsmanager list-secrets --query "SecretList[?contains(Name, 'devops-articles-db-password')].Name" --output text | tail -1)
+        aws secretsmanager get-secret-value --secret-id "$SECRET_NAME" --query 'SecretString' --output text | jq -r '.password'
+      register: rds_password
+      changed_when: false
+      no_log: true
+
+    - name: URL encode password for DATABASE_URL
+      set_fact:
+        encoded_password: "{{ rds_password.stdout | urlencode }}"
+      no_log: true
+
+    - name: Update ConfigMap with actual RDS endpoint
       kubernetes.core.k8s:
         state: present
-        src: "{{ k8s_manifests_dir }}/05-postgres-service.yaml"
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: app-config
+            namespace: "{{ k8s_namespace }}"
+          data:
+            NODE_ENV: "production"
+            PORT: "3000"
+            DB_HOST: "{{ rds_endpoint.stdout }}"
+            DB_PORT: "5432"
+            DB_NAME: "devops_db"
+            DB_USERNAME: "postgres"
+            DB_SSL: "true"
+            AWS_REGION: "{{ aws_region }}"
+            EMAIL_FROM: "noreply@devops-articles.com"
+            APP_URL: "http://localhost:3000"
+            COOKIE_SECURE: "false"
+            NODE_TLS_REJECT_UNAUTHORIZED: "0"
+
+    - name: Create or update app-secrets
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: app-secrets
+            namespace: "{{ k8s_namespace }}"
+          type: Opaque
+          stringData:
+            DB_PASSWORD: "{{ rds_password.stdout }}"
+            DATABASE_URL: "postgresql://postgres:{{ encoded_password }}@{{ rds_endpoint.stdout }}:5432/devops_db?sslmode=require"
+            SESSION_SECRET: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') }}"
+            RESEND_API_KEY: "re_placeholder"
+      no_log: true
+
+    - name: Apply ServiceAccount
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/09-serviceaccount.yaml"
         namespace: "{{ k8s_namespace }}"
-      when: "'postgres' in lookup('file', k8s_manifests_dir + '/05-postgres-service.yaml')"
-      ignore_errors: yes
       
     - name: Apply Application Deployment
       kubernetes.core.k8s:
