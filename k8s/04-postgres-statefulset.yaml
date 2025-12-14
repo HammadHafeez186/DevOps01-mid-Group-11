@@ -34,13 +34,17 @@ spec:
         - name: POSTGRES_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: app-secret
+              name: app-secrets
               key: DB_PASSWORD
         - name: POSTGRES_DB
           valueFrom:
             configMapKeyRef:
               name: app-config
               key: DB_NAME
+        - name: POSTGRES_HOST_AUTH_METHOD
+          value: "md5"
+        - name: POSTGRES_INITDB_ARGS
+          value: "--auth-host=md5"
         volumeMounts:
         - name: postgres-storage
           mountPath: /var/lib/postgresql/data

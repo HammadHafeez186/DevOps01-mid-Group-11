@@ -1,11 +1,11 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: postgres-pvc
+  name: uploads-pvc
   namespace: devops-articles
   labels:
     app: devops-articles
-    component: database
+    component: storage
 spec:
   accessModes:
     - ReadWriteOnce

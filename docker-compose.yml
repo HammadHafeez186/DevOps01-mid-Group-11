@@ -49,6 +49,7 @@ services:
     volumes:
       - .:/app:ro
       - /app/node_modules
+      - uploads_data:/app/uploads  # Persistent storage for uploaded files
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "healthcheck.js"]
@@ -62,4 +63,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  uploads_data:
     driver: local

@@ -47,8 +47,12 @@ module.exports = {
         dialectOptions: shouldUseSSL ? sslDialectOptions : nonSslDialectOptions
     },
     production: {
-        // In production (Railway/K8s), rely solely on DATABASE_URL
-        use_env_variable: 'DATABASE_URL',
+        // In production, use individual DB parameters for better control
+        username: process.env.DB_USERNAME || null,
+        password: process.env.DB_PASSWORD || null,
+        database: process.env.DB_NAME || null,
+        host: process.env.DB_HOST || null,
+        port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
         dialect: 'postgres',
         dialectOptions: shouldUseSSL ? sslDialectOptions : nonSslDialectOptions,
         logging: false
