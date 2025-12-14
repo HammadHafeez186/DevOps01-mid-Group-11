@@ -1,6 +1,23 @@
 # Free Tier Optimized: EC2 Instances for Kubernetes (k3s)
 # This replaces the expensive EKS cluster
 
+# Data source for latest Ubuntu AMI (only when not using EKS)
+data "aws_ami" "ubuntu" {
+  count       = var.use_eks ? 0 : 1
+  most_recent = true
+  owners      = ["099720109477"] # Canonical
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 # EC2 Instance for k3s (Lightweight Kubernetes)
 resource "aws_instance" "k3s_server" {
   count         = var.use_eks ? 0 : 1
@@ -32,23 +49,6 @@ resource "aws_instance" "k3s_server" {
   }
 
   depends_on = [aws_db_instance.postgres]
-}
-
-# Data source for latest Ubuntu AMI (only when not using EKS)
-data "aws_ami" "ubuntu" {
-  count       = var.use_eks ? 0 : 1
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-22.04-amd64-server-*"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
 }
 
 # Security Group for EC2 k3s instance
