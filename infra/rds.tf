@@ -70,7 +70,7 @@ resource "aws_db_parameter_group" "postgres" {
 
 # RDS PostgreSQL Instance
 resource "aws_db_instance" "postgres" {
-  identifier     = "${var.project_name}-postgres"
+  identifier_prefix = "${var.project_name}-postgres-"
   engine         = "postgres"
   engine_version = "17"
   instance_class = var.db_instance_class
@@ -112,6 +112,10 @@ resource "aws_db_instance" "postgres" {
 
   auto_minor_version_upgrade = true
   apply_immediately          = true
+
+  lifecycle {
+    create_before_destroy = true
+  }
 
   tags = {
     Name = "${var.project_name}-postgres"
