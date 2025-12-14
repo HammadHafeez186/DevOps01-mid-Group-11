@@ -66,6 +66,10 @@ resource "aws_db_parameter_group" "postgres" {
   tags = {
     Name = "${var.project_name}-postgres-params"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
 }
 
 # RDS PostgreSQL Instance
