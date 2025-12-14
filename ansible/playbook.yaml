@@ -10,6 +10,9 @@
     ecr_registry: "322467327252.dkr.ecr.us-east-1.amazonaws.com"
     image_name: "devops-articles"
     image_tag: "latest"
+    # Application secrets - these should be set via environment variables or GitHub Secrets
+    resend_api_key: "{{ lookup('env', 'RESEND_API_KEY') | default('re_8AmZ4VaA_Kw2gnEeCVpwZYdWWqASPuZrw', true) }}"
+    session_secret: "{{ lookup('env', 'SESSION_SECRET') | default('7d97ecfef42be0514894f998773924f0b52a8016a428f42ee7e82cbfdfe692d3', true) }}"
     
   tasks:
     - name: Check if kubectl is installed
@@ -117,8 +120,8 @@
           stringData:
             DB_PASSWORD: "{{ rds_password.stdout }}"
             DATABASE_URL: "postgresql://postgres:{{ encoded_password }}@{{ rds_endpoint.stdout }}:5432/devops_db?sslmode=require"
-            SESSION_SECRET: "{{ lookup('password', '/dev/null chars=ascii_letters,digits length=32') }}"
-            RESEND_API_KEY: "re_placeholder"
+            SESSION_SECRET: "{{ session_secret }}"
+            RESEND_API_KEY: "{{ resend_api_key }}"
       no_log: true
 
     - name: Apply ServiceAccount
