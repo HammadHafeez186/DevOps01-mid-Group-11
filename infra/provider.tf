@@ -12,8 +12,14 @@ terraform {
     }
   }
 
-  # Remote state is configured at runtime via -backend-config in CI
-  backend "s3" {}
+  # Optional: Configure remote state (S3 backend)
+  # backend "s3" {
+  #   bucket         = "your-terraform-state-bucket"
+  #   key            = "devops-articles/terraform.tfstate"
+  #   region         = "us-east-1"
+  #   encrypt        = true
+  #   dynamodb_table = "terraform-state-lock"
+  # }
 }
 
 provider "aws" {
