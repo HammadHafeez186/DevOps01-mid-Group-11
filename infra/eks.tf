@@ -1,6 +1,6 @@
 # IAM Role for EKS Cluster
 resource "aws_iam_role" "eks_cluster" {
-  name = "${var.project_name}-eks-cluster-role"
+  name_prefix = "${var.project_name}-eks-cluster-role-"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -57,7 +57,7 @@ resource "aws_eks_cluster" "main" {
 
 # IAM Role for EKS Node Group
 resource "aws_iam_role" "eks_nodes" {
-  name = "${var.project_name}-eks-node-role"
+  name_prefix = "${var.project_name}-eks-node-role-"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
