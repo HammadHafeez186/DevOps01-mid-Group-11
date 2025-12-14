@@ -29,12 +29,18 @@ resource "aws_secretsmanager_secret_version" "db_password" {
 
 # DB Subnet Group
 resource "aws_db_subnet_group" "main" {
-  name       = "${var.project_name}-db-subnet-group"
-  subnet_ids = aws_subnet.private[*].id
+  name_prefix = "${var.project_name}-db-subnet-"
+  subnet_ids  = aws_subnet.private[*].id
 
   tags = {
     Name = "${var.project_name}-db-subnet-group"
   }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  depends_on = [aws_subnet.private]
 }
 
 # DB Parameter Group
