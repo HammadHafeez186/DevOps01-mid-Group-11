@@ -7,8 +7,11 @@ WORKDIR /app
 # Copy package files for dependency installation
 COPY package*.json ./
 
-# Install dependencies (production only)
-RUN npm ci --omit=dev && npm cache clean --force
+# Install dependencies (including dev dependencies for migrations)
+RUN npm ci && npm cache clean --force
+
+# Install netcat for database connection checking
+RUN apk add --no-cache netcat-openbsd
 
 # Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
@@ -16,6 +19,9 @@ RUN addgroup -g 1001 -S nodejs && \
 
 # Copy application code
 COPY --chown=nodeuser:nodejs . .
+
+# Make startup script executable
+RUN chmod +x scripts/docker-start.sh
 
 # Switch to non-root user
 USER nodeuser
@@ -27,5 +33,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node healthcheck.js
 
-# Start the application
-CMD ["npm", "start"]
+# Start the application with migrations
+CMD ["./scripts/docker-start.sh"]

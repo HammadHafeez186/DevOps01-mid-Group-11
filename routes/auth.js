@@ -33,27 +33,89 @@ const issueOtp = async(user) => {
 }
 
 const sendVerificationEmail = async(email, otp) => {
-    const from = process.env.EMAIL_FROM || 'no-reply@example.com'
+    const from = process.env.EMAIL_FROM || 'DevOps Articles <noreply@tabeebemail.me>'
     const appName = process.env.APP_NAME || 'DevOps Articles'
+    const appUrl = process.env.APP_URL || 'http://localhost:3000'
 
     await sendMail({
         from,
         to: email,
-        subject: `${appName} verification code`,
+        subject: `🔐 ${appName} - Your Verification Code`,
         text: [
             `Welcome to ${appName}!`,
             '',
-            `Your verification code is: ${otp}`,
+            `Your 6-digit verification code is: ${otp}`,
             '',
-            `This code will expire in ${OTP_EXPIRY_MINUTES} minutes.`,
-            'If you did not request this code, you can safely ignore this email.'
+            `⏰ This code will expire in ${OTP_EXPIRY_MINUTES} minutes.`,
+            '',
+            '🔒 For your security:',
+            '• Never share this code with anyone',
+            '• We will never ask for this code over phone or email',
+            '',
+            `If you did not request this code, please ignore this email or contact support.`,
+            '',
+            `Visit: ${appUrl}`,
+            '',
+            'Best regards,',
+            `The ${appName} Team`
         ].join('\n'),
-        html: [
-            `<p>Welcome to <strong>${appName}</strong>!</p>`,
-            `<p>Your verification code is: <strong>${otp}</strong></p>`,
-            `<p>This code will expire in ${OTP_EXPIRY_MINUTES} minutes.</p>`,
-            '<p>If you did not request this code, you can safely ignore this email.</p>'
-        ].join('')
+        html: `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Verification Code - ${appName}</title>
+            </head>
+            <body style="font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden;">
+                    <!-- Header -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center;">
+                        <h1 style="color: white; margin: 0; font-size: 24px;">🏥 ${appName}</h1>
+                        <p style="color: #f0f0f0; margin: 5px 0 0 0;">Medical Articles & Resources</p>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div style="padding: 40px 30px;">
+                        <h2 style="color: #333; margin: 0 0 20px 0; font-size: 22px;">Welcome! Please verify your account</h2>
+                        
+                        <p style="color: #666; font-size: 16px; line-height: 1.6; margin: 0 0 25px 0;">
+                            Thank you for joining ${appName}. To complete your registration, please use the verification code below:
+                        </p>
+                        
+                        <!-- OTP Box -->
+                        <div style="background: #f8f9fa; border: 2px dashed #667eea; border-radius: 10px; padding: 25px; text-align: center; margin: 30px 0;">
+                            <div style="color: #667eea; font-size: 14px; font-weight: bold; margin-bottom: 10px;">YOUR VERIFICATION CODE</div>
+                            <div style="font-size: 36px; font-weight: bold; color: #333; letter-spacing: 8px; font-family: 'Courier New', monospace;">${otp}</div>
+                            <div style="color: #999; font-size: 12px; margin-top: 10px;">⏰ Expires in ${OTP_EXPIRY_MINUTES} minutes</div>
+                        </div>
+                        
+                        <!-- Security Notice -->
+                        <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 25px 0; border-radius: 0 5px 5px 0;">
+                            <h4 style="color: #856404; margin: 0 0 10px 0; font-size: 16px;">🔒 Security Notice</h4>
+                            <ul style="color: #856404; margin: 0; padding-left: 20px; font-size: 14px;">
+                                <li>Never share this code with anyone</li>
+                                <li>We will never ask for this code via phone or email</li>
+                                <li>If you didn't request this, please ignore this email</li>
+                            </ul>
+                        </div>
+                        
+                        <p style="color: #666; font-size: 14px; text-align: center; margin: 30px 0 0 0;">
+                            Need help? Visit <a href="${appUrl}" style="color: #667eea; text-decoration: none;">${appName}</a> or contact our support team.
+                        </p>
+                    </div>
+                    
+                    <!-- Footer -->
+                    <div style="background: #f8f9fa; padding: 20px 30px; text-align: center; border-top: 1px solid #eee;">
+                        <p style="color: #999; font-size: 12px; margin: 0;">
+                            © 2025 ${appName} • Powered by tabeeb.email<br>
+                            This email was sent to ${email}
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `
     })
 }
 
@@ -361,7 +423,7 @@ const generateResetToken = () => {
 }
 
 const sendPasswordResetEmail = async(email, resetToken, req) => {
-    const from = process.env.EMAIL_FROM || 'DevOps Articles <noreply@tabeeb.email>'
+    const from = process.env.EMAIL_FROM || 'DevOps Articles <noreply@tabeebemail.me>'
     const appName = process.env.APP_NAME || 'DevOps Articles'
 
     // Build base URL from request or environment variable
@@ -685,6 +747,224 @@ router.post('/admin/login', redirectIfAuthenticated, asyncHandler(async(req, res
 
     setFlash(req, 'success', `Welcome, Administrator! ${keepLoggedIn ? '(7 days)' : ''}`)
     res.redirect(redirectTarget)
+}))
+
+// Test OTP email endpoint for development/testing
+router.get('/test-otp-email', asyncHandler(async(req, res) => {
+    const testEmail = req.query.email || 'test@example.com'
+    const testOtp = crypto.randomInt(100000, 999999).toString()
+    
+    try {
+        await sendVerificationEmail(testEmail, testOtp)
+        
+        res.json({
+            success: true,
+            message: `OTP verification email sent successfully to ${testEmail}`,
+            otp: testOtp, // Only for testing - remove in production
+            configuration: {
+                server: process.env.POSTAL_SERVER || 'Not configured',
+                from: process.env.EMAIL_FROM || 'Not configured',
+                apiKeyConfigured: !!process.env.POSTAL_API_KEY
+            }
+        })
+    } catch (error) {
+        console.error('Failed to send OTP email:', error.message)
+        
+        res.json({
+            success: false,
+            message: `Failed to send OTP email: ${error.message}`,
+            configuration: {
+                server: process.env.POSTAL_SERVER || 'Not configured',
+                from: process.env.EMAIL_FROM || 'Not configured',
+                apiKeyConfigured: !!process.env.POSTAL_API_KEY
+            }
+        })
+    }
+}))
+
+// Test email endpoint for development/testing
+router.get('/test-email', asyncHandler(async(req, res) => {
+    const testEmail = req.query.email || 'test@example.com'
+    
+    try {
+        await sendMail({
+            to: testEmail,
+            subject: 'Tabeeb.email Test - Postal Configuration',
+            text: [
+                'This is a test email from your DevOps Articles application.',
+                '',
+                'Email service configuration:',
+                `- Server: ${process.env.POSTAL_SERVER || 'Not configured'}`,
+                `- From: ${process.env.EMAIL_FROM || 'Not configured'}`,
+                `- API Key: ${process.env.POSTAL_API_KEY ? 'Configured' : 'Not configured'}`,
+                '',
+                'If you received this email, your Postal configuration is working correctly!',
+                '',
+                `Test sent at: ${new Date().toISOString()}`
+            ].join('\n'),
+            html: [
+                '<h2>🎉 Tabeeb.email Test - Postal Configuration</h2>',
+                '<p>This is a test email from your DevOps Articles application.</p>',
+                '<h3>📧 Email service configuration:</h3>',
+                '<ul>',
+                `<li><strong>Server:</strong> ${process.env.POSTAL_SERVER || 'Not configured'}</li>`,
+                `<li><strong>From:</strong> ${process.env.EMAIL_FROM || 'Not configured'}</li>`,
+                `<li><strong>API Key:</strong> ${process.env.POSTAL_API_KEY ? '✅ Configured' : '❌ Not configured'}</li>`,
+                '</ul>',
+                '<p><strong>✅ If you received this email, your Postal configuration is working correctly!</strong></p>',
+                `<p><small>Test sent at: ${new Date().toISOString()}</small></p>`
+            ].join('')
+        })
+        
+        res.json({
+            success: true,
+            message: `Test email sent successfully to ${testEmail}`,
+            configuration: {
+                server: process.env.POSTAL_SERVER || 'Not configured',
+                from: process.env.EMAIL_FROM || 'Not configured',
+                apiKeyConfigured: !!process.env.POSTAL_API_KEY
+            }
+        })
+    } catch (error) {
+        console.error('Test email failed:', error.message)
+        res.status(500).json({
+            success: false,
+            message: `Failed to send test email: ${error.message}`,
+            configuration: {
+                server: process.env.POSTAL_SERVER || 'Not configured',
+                from: process.env.EMAIL_FROM || 'Not configured',
+                apiKeyConfigured: !!process.env.POSTAL_API_KEY
+            }
+        })
+    }
+}))
+
+// Test Postal connection (without sending email)
+router.get('/test-postal-connection', asyncHandler(async(req, res) => {
+    try {
+        // Test 1: Check if we can reach the Postal server
+        const axios = require('axios')
+        const testUrl = `https://${process.env.POSTAL_SERVER || 'postal.mailsytems.live'}/api/v1/servers`
+        
+        console.log(`Testing connection to: ${testUrl}`)
+        
+        const response = await axios.get(testUrl, {
+            headers: {
+                'X-Server-API-Key': process.env.POSTAL_API_KEY || 'test'
+            },
+            timeout: 10000
+        })
+        
+        res.json({
+            success: true,
+            message: 'Successfully connected to Postal server!',
+            serverResponse: response.status,
+            configuration: {
+                server: process.env.POSTAL_SERVER || 'Not configured',
+                from: process.env.EMAIL_FROM || 'Not configured',
+                apiKeyConfigured: !!process.env.POSTAL_API_KEY,
+                testUrl: testUrl
+            }
+        })
+    } catch (error) {
+        console.error('Postal connection test failed:', error.message)
+        
+        res.json({
+            success: false,
+            message: `Connection test failed: ${error.message}`,
+            error: error.code || 'UNKNOWN_ERROR',
+            configuration: {
+                server: process.env.POSTAL_SERVER || 'Not configured',
+                from: process.env.EMAIL_FROM || 'Not configured',
+                apiKeyConfigured: !!process.env.POSTAL_API_KEY
+            },
+            suggestion: 'This might be due to missing DNS records or incorrect API key'
+        })
+    }
+}))
+
+// Comprehensive email service status and testing endpoint
+router.get('/test-email-services', asyncHandler(async(req, res) => {
+    const testEmail = req.query.email || 'test@example.com'
+    const emailServices = {
+        postal_http: {
+            configured: !!process.env.POSTAL_API_KEY && !!process.env.POSTAL_SERVER,
+            details: {
+                server: process.env.POSTAL_SERVER || 'Not configured',
+                port: process.env.POSTAL_PORT || '587',
+                apiKey: process.env.POSTAL_API_KEY ? '✅ Configured' : '❌ Not configured'
+            }
+        },
+        postal_smtp: {
+            configured: !!process.env.POSTAL_API_KEY && !!process.env.POSTAL_SERVER,
+            details: {
+                server: process.env.POSTAL_SERVER || 'Not configured',
+                port: process.env.POSTAL_PORT || '587',
+                username: process.env.POSTAL_USERNAME || 'apikey',
+                apiKey: process.env.POSTAL_API_KEY ? '✅ Configured' : '❌ Not configured'
+            }
+        },
+        resend: {
+            configured: !!process.env.RESEND_API_KEY,
+            details: {
+                apiKey: process.env.RESEND_API_KEY ? '✅ Configured' : '❌ Not configured',
+                keyPrefix: process.env.RESEND_API_KEY ? process.env.RESEND_API_KEY.substring(0, 10) + '...' : 'Not set'
+            }
+        }
+    }
+
+    if (req.query.send === 'true') {
+        try {
+            await sendMail({
+                to: testEmail,
+                subject: '📧 Email Service Status Test',
+                text: 'This is a test email from your DevOps Articles application.',
+                html: `
+                    <h2>📧 Email Service Status Test</h2>
+                    <p>This email was sent successfully!</p>
+                    <p>Configured services:</p>
+                    <ul>
+                        <li>Postal HTTP API: ${emailServices.postal_http.configured ? '✅' : '❌'}</li>
+                        <li>Postal SMTP: ${emailServices.postal_smtp.configured ? '✅' : '❌'}</li>
+                        <li>Resend API: ${emailServices.resend.configured ? '✅' : '❌'}</li>
+                    </ul>
+                `
+            })
+
+            res.json({
+                success: true,
+                message: `Test email sent to ${testEmail}`,
+                emailServices,
+                fallbackChain: [
+                    'Postal HTTP API',
+                    'Postal SMTP',
+                    'Resend API',
+                    'Mock Service (Development Only)'
+                ]
+            })
+        } catch (error) {
+            console.error('Email test failed:', error.message)
+            res.json({
+                success: false,
+                message: `Failed to send test email: ${error.message}`,
+                emailServices,
+                error: error.message
+            })
+        }
+    } else {
+        res.json({
+            success: true,
+            message: 'Email service status check',
+            emailServices,
+            fallbackChain: [
+                '1. Postal HTTP API - Primary',
+                '2. Postal SMTP - Secondary',
+                '3. Resend API - Tertiary',
+                '4. Mock Service - Fallback (Development Only)'
+            ],
+            testUrl: 'http://localhost:3000/auth/test-email-services?email=your@email.com&send=true'
+        })
+    }
 }))
 
 module.exports = router

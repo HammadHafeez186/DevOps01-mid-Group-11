@@ -2,25 +2,42 @@
 
 module.exports = {
     up: async(queryInterface, Sequelize) => {
-        await queryInterface.addColumn('Articles', 'visibility', {
-            type: Sequelize.ENUM('public', 'private'),
-            allowNull: false,
-            defaultValue: 'public'
-        })
+        // Check if visibility column exists before adding it
+        const tableDescription = await queryInterface.describeTable('Articles')
+        
+        if (!tableDescription.visibility) {
+            await queryInterface.addColumn('Articles', 'visibility', {
+                type: Sequelize.ENUM('public', 'private'),
+                allowNull: false,
+                defaultValue: 'public'
+            })
+        }
 
-        await queryInterface.addColumn('Articles', 'userId', {
-            type: Sequelize.INTEGER,
-            allowNull: true,
-            references: {
-                model: 'Users',
-                key: 'id'
-            },
-            onUpdate: 'CASCADE',
-            onDelete: 'SET NULL'
-        })
+        if (!tableDescription.userId) {
+            await queryInterface.addColumn('Articles', 'userId', {
+                type: Sequelize.INTEGER,
+                allowNull: true,
+                references: {
+                    model: 'Users',
+                    key: 'id'
+                },
+                onUpdate: 'CASCADE',
+                onDelete: 'SET NULL'
+            })
+        }
 
-        await queryInterface.addIndex('Articles', ['visibility'])
-        await queryInterface.addIndex('Articles', ['userId'])
+        // Add indexes only if they don't exist (Sequelize will skip if they exist)
+        try {
+            await queryInterface.addIndex('Articles', ['visibility'])
+        } catch (error) {
+            // Index might already exist, ignore
+        }
+        
+        try {
+            await queryInterface.addIndex('Articles', ['userId'])
+        } catch (error) {
+            // Index might already exist, ignore
+        }
     },
 
     down: async(queryInterface, Sequelize) => {

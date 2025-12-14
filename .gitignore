@@ -11,6 +11,9 @@ coverage/
 dist/
 build/
 VIVA-CHEATSHEET.md
+
+# Kubernetes secrets (keep sample only)
+k8s/02-secret.yaml
 githubLink.txt
 runningContainers02.png
 runningContainers01.png
@@ -19,3 +22,18 @@ railwayDeploymentProof01.png
 railwayDeploymentProof02.png
 finalReport.pdf
 dockerHubProof.png
+
+# Terraform
+infra/*.tfstate
+infra/*.tfstate.*
+infra/*.tfvars
+!infra/terraform.tfvars.example
+infra/.terraform/
+infra/.terraform.lock.hcl
+infra/crash.log
+infra/crash.*.log
+
+# AWS credentials
+*.pem
+*.key
+aws-credentials.json
