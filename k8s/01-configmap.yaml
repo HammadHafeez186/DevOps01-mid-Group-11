@@ -8,11 +8,11 @@ metadata:
 data:
   NODE_ENV: "production"
   PORT: "3000"
-  DB_HOST: "devops-articles-postgres.cwjkesms8ego.us-east-1.rds.amazonaws.com"
+  DB_HOST: "postgres-service"
   DB_PORT: "5432"
   DB_NAME: "devops_db"
   DB_USERNAME: "postgres"
-  DB_SSL: "true"
+  DB_SSL: "false"
   EMAIL_FROM: "DevOps Articles <noreply@tabeebemail.me>"
   APP_URL: "http://aeab3ca7112b2462480d0ca854b12c1e-667800433.us-east-1.elb.amazonaws.com"
   COOKIE_SECURE: "false"
