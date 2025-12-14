@@ -6,8 +6,12 @@ metadata:
   labels:
     app: devops-articles
     component: app
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+    service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
 spec:
-  type: LoadBalancer  # AWS will create an ELB
+  type: LoadBalancer
+  externalTrafficPolicy: Cluster
   selector:
     app: devops-articles
     component: app
@@ -16,5 +20,3 @@ spec:
     targetPort: 3000
     protocol: TCP
     name: http
-  # For cloud: add sessionAffinity for sticky sessions if needed
-  # sessionAffinity: ClientIP

@@ -47,6 +47,22 @@ resource "aws_security_group" "eks_nodes" {
     description = "Allow HTTPS access to the cluster"
   }
 
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_cidr_blocks
+    description = "Allow HTTP access from internet"
+  }
+
+  ingress {
+    from_port   = 30000
+    to_port     = 32767
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_cidr_blocks
+    description = "Allow NodePort range for Kubernetes LoadBalancer services"
+  }
+
   egress {
     from_port   = 0
     to_port     = 0

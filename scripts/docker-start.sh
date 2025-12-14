@@ -17,7 +17,7 @@ echo " Database is ready!"
 
 # Run database migrations
 echo " Running database migrations..."
-NODE_ENV=docker npx sequelize-cli db:migrate
+NODE_TLS_REJECT_UNAUTHORIZED=${NODE_TLS_REJECT_UNAUTHORIZED:-0} NODE_ENV=docker npx sequelize-cli db:migrate
 
 if [ $? -eq 0 ]; then
     echo " Migrations completed successfully"
@@ -28,7 +28,7 @@ fi
 
 # Run seeders
 echo " Running database seeders..."
-NODE_ENV=docker npx sequelize-cli db:seed:all || echo " No seeders"
+NODE_TLS_REJECT_UNAUTHORIZED=${NODE_TLS_REJECT_UNAUTHORIZED:-0} NODE_ENV=docker npx sequelize-cli db:seed:all || echo " No seeders"
 
 echo " Starting application server..."
 node server.js

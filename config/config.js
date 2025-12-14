@@ -44,7 +44,7 @@ module.exports = {
         host: process.env.DB_HOST || null,
         port: process.env.DB_PORT ? Number(process.env.DB_PORT) : undefined,
         dialect: 'postgres',
-        dialectOptions: nonSslDialectOptions
+        dialectOptions: shouldUseSSL ? sslDialectOptions : nonSslDialectOptions
     },
     production: {
         // In production (Railway/K8s), rely solely on DATABASE_URL

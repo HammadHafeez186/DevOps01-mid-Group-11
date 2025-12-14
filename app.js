@@ -46,7 +46,9 @@ app.use(session({
     cookie: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: isProduction,
+        // Only use secure cookies if explicitly set to 'true', not just in production
+        // This allows HTTP deployments in K8s/AWS without HTTPS
+        secure: process.env.COOKIE_SECURE === 'true',
         maxAge: 24 * 60 * 60 * 1000 // 24 hours
     }
 }))

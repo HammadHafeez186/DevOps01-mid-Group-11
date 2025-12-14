@@ -1,0 +1,144 @@
+---
+- name: Deploy DevOps Articles Application to Kubernetes
+  hosts: eks_cluster
+  gather_facts: yes
+  
+  vars:
+    app_name: devops-articles
+    namespace: devops-articles
+    k8s_manifests_dir: "../k8s"
+    ecr_registry: "322467327252.dkr.ecr.us-east-1.amazonaws.com"
+    image_name: "devops-articles"
+    image_tag: "latest"
+    
+  tasks:
+    - name: Check if kubectl is installed
+      command: kubectl version --client
+      register: kubectl_check
+      changed_when: false
+      
+    - name: Display kubectl version
+      debug:
+        msg: "kubectl version: {{ kubectl_check.stdout_lines[0] }}"
+        
+    - name: Check AWS CLI installation
+      command: aws --version
+      register: aws_check
+      changed_when: false
+      
+    - name: Display AWS CLI version
+      debug:
+        msg: "AWS CLI version: {{ aws_check.stdout }}"
+        
+    - name: Configure kubectl for EKS cluster
+      shell: |
+        aws eks update-kubeconfig --region {{ aws_region }} --name {{ cluster_name }}
+      changed_when: false
+      
+    - name: Create namespace if it doesn't exist
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ namespace }}"
+            
+    - name: Apply ConfigMap
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/01-configmap.yaml"
+        namespace: "{{ namespace }}"
+        
+    - name: Check if secrets exist
+      kubernetes.core.k8s_info:
+        kind: Secret
+        name: app-secrets
+        namespace: "{{ namespace }}"
+      register: secret_check
+      
+    - name: Display secret status
+      debug:
+        msg: "Secrets {{ 'exist' if secret_check.resources else 'do not exist - please create manually' }}"
+        
+    - name: Apply PostgreSQL StatefulSet
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/04-postgres-statefulset.yaml"
+        namespace: "{{ namespace }}"
+      when: "'postgres' in lookup('file', k8s_manifests_dir + '/04-postgres-statefulset.yaml')"
+      ignore_errors: yes
+      
+    - name: Apply PostgreSQL Service
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/05-postgres-service.yaml"
+        namespace: "{{ namespace }}"
+      when: "'postgres' in lookup('file', k8s_manifests_dir + '/05-postgres-service.yaml')"
+      ignore_errors: yes
+      
+    - name: Apply Application Deployment
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/06-app-deployment.yaml"
+        namespace: "{{ namespace }}"
+        
+    - name: Apply Application Service
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/07-app-service.yaml"
+        namespace: "{{ namespace }}"
+        
+    - name: Apply HPA (Horizontal Pod Autoscaler)
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/08-hpa.yaml"
+        namespace: "{{ namespace }}"
+      ignore_errors: yes
+      
+    - name: Wait for application pods to be ready
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - app={{ app_name }}
+      register: pod_list
+      until: pod_list.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+      retries: 30
+      delay: 10
+      
+    - name: Get deployment status
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: app
+        namespace: "{{ namespace }}"
+      register: deployment_status
+      
+    - name: Display deployment replicas
+      debug:
+        msg: "Deployment ready replicas: {{ deployment_status.resources[0].status.readyReplicas | default(0) }}/{{ deployment_status.resources[0].spec.replicas }}"
+        
+    - name: Get service information
+      kubernetes.core.k8s_info:
+        kind: Service
+        name: app-service
+        namespace: "{{ namespace }}"
+      register: service_info
+      
+    - name: Display LoadBalancer URL
+      debug:
+        msg: "Application URL: http://{{ service_info.resources[0].status.loadBalancer.ingress[0].hostname | default('pending...') }}"
+      when: service_info.resources[0].spec.type == 'LoadBalancer'
+      
+    - name: Get all pods
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ namespace }}"
+      register: all_pods
+      
+    - name: Display pod status
+      debug:
+        msg: "Pod {{ item.metadata.name }} is {{ item.status.phase }}"
+      loop: "{{ all_pods.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"

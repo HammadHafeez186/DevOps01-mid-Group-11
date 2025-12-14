@@ -22,6 +22,10 @@ spec:
       labels:
         app: devops-articles
         component: app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
     spec:
       serviceAccountName: app-sa
       initContainers:
@@ -102,6 +106,16 @@ spec:
             configMapKeyRef:
               name: app-config
               key: APP_URL
+        - name: COOKIE_SECURE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: COOKIE_SECURE
+        - name: NODE_TLS_REJECT_UNAUTHORIZED
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: NODE_TLS_REJECT_UNAUTHORIZED
         # From Secret
         - name: DB_PASSWORD
           valueFrom:

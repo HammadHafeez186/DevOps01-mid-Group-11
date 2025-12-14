@@ -16,4 +16,9 @@ data:
   DB_SSL: "true"  # Enable SSL for RDS
   EMAIL_FROM: "DevOps Articles <noreply@tabeebemail.me>"
   # This will be the LoadBalancer URL after deployment
-  APP_URL: "http://localhost:3000"
+  # Update this after getting the LoadBalancer external IP/hostname
+  APP_URL: "http://REPLACE_WITH_LOADBALANCER_URL"
+  # Cookie security - set to 'true' only if using HTTPS
+  COOKIE_SECURE: "false"
+  # Allow self-signed SSL certificates from RDS
+  NODE_TLS_REJECT_UNAUTHORIZED: "0"
