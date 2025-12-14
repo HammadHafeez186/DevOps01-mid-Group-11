@@ -51,13 +51,13 @@ variable "ec2_key_name" {
 variable "use_eks" {
   description = "Use EKS cluster (expensive) or EC2 with k3s (free tier)"
   type        = bool
-  default     = false # Set to false for free tier
+  default     = true # Set to true for EKS deployment
 }
 
 variable "use_nat_gateway" {
   description = "Use NAT Gateway (costs ~$32/month) or public subnets only"
   type        = bool
-  default     = false # Set to false for free tier
+  default     = true # Required for EKS private nodes
 }
 
 # EKS Configuration
