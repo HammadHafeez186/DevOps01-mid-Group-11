@@ -13,7 +13,7 @@
   }
 
   backend "s3" {
-    bucket         = "devops-articles-tf-state-1548"
+    bucket         = "devops-articles-tf-state-8385"
     key            = "devops-articles/terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
