@@ -18,6 +18,7 @@ QUICK_REFERENCE.md
 GIT_SUBMISSION_GUIDE.md
 DEPLOYMENT_CHECKLIST.md
 RAILWAY_SETUP.md
+PICS/
 
 # Kubernetes secrets (keep sample only)
 k8s/02-secret.yaml
