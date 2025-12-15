@@ -19,7 +19,10 @@ env:
   NAMESPACE: devops-articles
 
 jobs:
+  # ============================================================================
   # Stage 1: Build & Install Dependencies
+  # Purpose: Install project dependencies and cache for subsequent stages
+  # ============================================================================
   build-and-install:
     name: 🔨 Build & Install
     runs-on: ubuntu-latest
