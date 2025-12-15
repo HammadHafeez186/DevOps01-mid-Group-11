@@ -6,8 +6,8 @@ metadata:
 data:
   prometheus.yml: |
     global:
-      scrape_interval: 10s
-      evaluation_interval: 10s
+      scrape_interval: 15s
+      evaluation_interval: 15s
       # Enhanced monitoring configuration
       external_labels:
         cluster: 'devops-articles-eks'
