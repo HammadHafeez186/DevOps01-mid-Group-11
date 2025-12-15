@@ -3,8 +3,9 @@
 ## Pipeline Stages
 
 ### Stage 1: Build & Install
-- Install dependencies
-- Cache node modules
+- Install dependencies with npm ci
+- Cache node modules for faster builds
+- Validate package integrity
 
 ### Stage 2: Lint & Security
 - ESLint validation
