@@ -23,64 +23,27 @@ jobs:
   build-and-install:
     name: 🔨 Build & Install
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    
-    outputs:
-      cache-key: ${{ steps.cache-deps.outputs.cache-key }}
-      node-version: ${{ steps.setup-node.outputs.node-version }}
     
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
       
     - name: 🚀 Setup Node.js
-      id: setup-node
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
         
-    - name: 🔍 Check cache hit
-      id: cache-deps
-      uses: actions/cache@v4
-      with:
-        path: |
-          node_modules
-          ~/.npm
-          .eslintcache
-        key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-${{ hashFiles('.eslintrc*') }}
-        restore-keys: |
-          ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}-
-          ${{ runner.os }}-node-
-        
     - name: 📦 Install dependencies
-      if: steps.cache-deps.outputs.cache-hit != 'true'
-      run: |
-        npm ci --prefer-offline --no-audit
-        echo "✅ Dependencies installed successfully"
-        
-    - name: 📊 Generate dependency tree
-      run: |
-        npm list --depth=0 > dependency-tree.txt
-        echo "Total packages: $(npm list --depth=0 | grep -c '├──\|└──')"
+      run: npm ci
         
     - name: 💾 Cache node modules
-      if: steps.cache-deps.outputs.cache-hit != 'true'
       uses: actions/cache@v4
       with:
         path: node_modules
         key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
         restore-keys: |
           ${{ runner.os }}-node-
-          
-    - name: 📤 Upload dependency artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: dependencies-info
-        path: dependency-tree.txt
-        retention-days: 7
 
   # Stage 2: Parallel Validation - Lint
   lint:
