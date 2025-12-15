@@ -17,9 +17,6 @@ env:
   AWS_REGION: us-east-1
   EKS_CLUSTER_NAME: devops-articles-eks-cluster
   NAMESPACE: devops-articles
-  # CI/CD Pipeline Configuration
-  ENABLE_MONITORING: true
-  ENABLE_SECURITY_SCAN: true
 
 jobs:
   # Stage 1: Build & Install Dependencies
