@@ -64,6 +64,21 @@
     - name: Display secret status
       debug:
         msg: "Secrets {{ 'exist' if secret_check.resources else 'will be created automatically' }}"
+    
+    - name: Create static application secrets (RESEND_API_KEY, SESSION_SECRET)
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: app-static-secrets
+            namespace: "{{ k8s_namespace }}"
+          type: Opaque
+          stringData:
+            SESSION_SECRET: "{{ session_secret }}"
+            RESEND_API_KEY: "{{ resend_api_key }}"
+      no_log: true
 
     - name: Check if Terraform state exists
       shell: |
@@ -124,7 +139,7 @@
             NODE_TLS_REJECT_UNAUTHORIZED: "0"
       when: has_rds_credentials
 
-    - name: Create or update app-secrets with RDS credentials
+    - name: Create complete app-secrets with RDS + static secrets
       kubernetes.core.k8s:
         state: present
         definition:
@@ -133,6 +148,9 @@
           metadata:
             name: app-secrets
             namespace: "{{ k8s_namespace }}"
+            annotations:
+              updated-at: "{{ ansible_date_time.iso8601 }}"
+              rds-endpoint: "{{ rds_endpoint.stdout }}"
           type: Opaque
           stringData:
             DB_PASSWORD: "{{ rds_password.stdout }}"
@@ -141,22 +159,21 @@
             RESEND_API_KEY: "{{ resend_api_key }}"
       no_log: true
       when: has_rds_credentials
+      register: secret_update_result
       
-    - name: Update app-secrets with application secrets only
+    - name: Restart deployment if secrets were updated
       kubernetes.core.k8s:
-        state: present
+        kind: Deployment
+        name: app
+        namespace: "{{ k8s_namespace }}"
+        state: patched
         definition:
-          apiVersion: v1
-          kind: Secret
-          metadata:
-            name: app-secrets
-            namespace: "{{ k8s_namespace }}"
-          type: Opaque
-          stringData:
-            SESSION_SECRET: "{{ session_secret }}"
-            RESEND_API_KEY: "{{ resend_api_key }}"
-      no_log: true
-      when: not has_rds_credentials and secret_check.resources | length > 0
+          spec:
+            template:
+              metadata:
+                annotations:
+                  kubectl.kubernetes.io/restartedAt: "{{ ansible_date_time.iso8601 }}"
+      when: has_rds_credentials and secret_update_result.changed
 
     - name: Apply ServiceAccount
       kubernetes.core.k8s:

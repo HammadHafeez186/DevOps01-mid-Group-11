@@ -10,6 +10,9 @@ yarn-error.log*
 coverage/
 dist/
 build/
+infra/ebs-trust-temp.json
+infra/ebs-trust.json
+infra/trust.json
 
 # Documentation files rejected from version control
 VIVA-CHEATSHEET.md
@@ -19,6 +22,9 @@ GIT_SUBMISSION_GUIDE.md
 DEPLOYMENT_CHECKLIST.md
 RAILWAY_SETUP.md
 PICS/
+PIPELINE_FIXES.md
+SECRET_MANAGEMENT.md
+.venv/
 
 # Kubernetes secrets (keep sample only)
 k8s/02-secret.yaml
