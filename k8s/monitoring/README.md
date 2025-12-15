@@ -2,6 +2,10 @@
 
 This directory contains Kubernetes manifests for deploying Prometheus and Grafana monitoring stack.
 
+## 🎯 Overview
+
+Complete observability solution for the DevOps Articles application.
+
 ## Components
 
 1. **Prometheus** - Metrics collection and storage
