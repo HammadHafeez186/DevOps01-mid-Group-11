@@ -8,6 +8,10 @@ data:
     global:
       scrape_interval: 15s
       evaluation_interval: 15s
+      # Enhanced monitoring configuration
+      external_labels:
+        cluster: 'devops-articles-eks'
+        environment: 'production'
 
     scrape_configs:
       # Scrape Prometheus itself
