@@ -1,68 +1,16 @@
 'use strict'
 
-const path = require('path')
-const fs = require('fs')
-const os = require('os')
 const multer = require('multer')
+const multerS3 = require('multer-s3')
+const { S3Client } = require('@aws-sdk/client-s3')
+const path = require('path')
 
-const ensureDirSync = (dirPath) => {
-    if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true })
-    }
-}
-
-const resolveUploadBaseDir = () => {
-    const candidates = []
-
-    if (process.env.UPLOAD_BASE_DIR) {
-        candidates.push({
-            label: 'UPLOAD_BASE_DIR',
-            dir: path.resolve(process.env.UPLOAD_BASE_DIR)
-        })
-    }
-
-    if (process.env.NODE_ENV !== 'production') {
-        candidates.push({
-            label: 'project uploads directory',
-            dir: path.join(process.cwd(), 'uploads')
-        })
-    }
-
-    candidates.push({
-        label: 'system temp directory',
-        dir: path.join(os.tmpdir(), 'app-uploads')
-    })
-
-    for (const candidate of candidates) {
-        try {
-            ensureDirSync(candidate.dir)
-            fs.accessSync(candidate.dir, fs.constants.W_OK)
-            return candidate.dir
-        } catch (error) {
-            console.warn(
-                `Upload directory ${candidate.label} at ${candidate.dir} is not writable: ${error.code || error.message}`
-            )
-        }
-    }
-
-    throw new Error('Unable to locate a writable upload directory for uploads')
-}
-
-const baseUploadDir = resolveUploadBaseDir()
-
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        const subDir = file.mimetype.startsWith('image/') ? 'images' : 'documents'
-        const absolutePath = path.join(baseUploadDir, subDir)
-        ensureDirSync(absolutePath)
-        cb(null, absolutePath)
-    },
-    filename: (req, file, cb) => {
-        const timestamp = Date.now()
-        const sanitizedOriginal = file.originalname.replace(/\s+/g, '-')
-        cb(null, `${timestamp}-${sanitizedOriginal}`)
-    }
+// Initialize S3 client (will use IAM role in EKS)
+const s3Client = new S3Client({
+    region: process.env.AWS_REGION || 'us-east-1'
 })
+
+const S3_BUCKET = process.env.S3_UPLOADS_BUCKET || 'devops-articles-uploads'
 
 const fileFilter = (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -85,7 +33,23 @@ const fileFilter = (req, file, cb) => {
 }
 
 const upload = multer({
-    storage,
+    storage: multerS3({
+        s3: s3Client,
+        bucket: S3_BUCKET,
+        metadata: (req, file, cb) => {
+            cb(null, {
+                fieldName: file.fieldname,
+                originalName: file.originalname
+            })
+        },
+        key: (req, file, cb) => {
+            const subDir = file.mimetype.startsWith('image/') ? 'images' : 'documents'
+            const timestamp = Date.now()
+            const sanitizedOriginal = file.originalname.replace(/\s+/g, '-')
+            const key = `${subDir}/${timestamp}-${sanitizedOriginal}`
+            cb(null, key)
+        }
+    }),
     limits: {
         fileSize: 10 * 1024 * 1024 // 10 MB
     },
@@ -94,5 +58,6 @@ const upload = multer({
 
 module.exports = {
     upload,
-    baseUploadDir
+    s3Client,
+    S3_BUCKET
 }

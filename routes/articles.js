@@ -5,7 +5,9 @@ const path = require('path')
 const express = require('express')
 const sanitizeHtml = require('sanitize-html')
 const { Article, ArticleMedia, User, Sequelize } = require('../models')
-const { upload, baseUploadDir } = require('../middleware/uploads')
+const { upload, s3Client, S3_BUCKET } = require('../middleware/uploads')
+const { GetObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner')
 
 const { Op } = Sequelize
 const router = express.Router()
@@ -52,31 +54,30 @@ const asyncHandler = (handler) => (req, res, next) => {
     Promise.resolve(handler(req, res, next)).catch(next)
 }
 
-const toPosixPath = (value) => value.split(path.sep).join('/')
-
-const relativeUploadPath = (absolutePath) => {
-    const relativeToBase = path.relative(baseUploadDir, absolutePath)
-
-    if (relativeToBase && !relativeToBase.startsWith('..') && !path.isAbsolute(relativeToBase)) {
-        return `uploads/${toPosixPath(relativeToBase)}`
-    }
-
-    return toPosixPath(path.relative(process.cwd(), absolutePath))
-}
-
-const resolveAbsoluteStoragePath = (storedPath) => {
-    if (!storedPath) {
+const getS3SignedUrl = async(s3Key) => {
+    if (!s3Key) return null
+    try {
+        const command = new GetObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: s3Key
+        })
+        return await getSignedUrl(s3Client, command, { expiresIn: 3600 })
+    } catch (error) {
+        console.error('Error generating signed URL:', error)
         return null
     }
+}
 
-    const normalized = storedPath.replace(/\\/g, '/')
-
-    if (normalized.startsWith('uploads/')) {
-        const relative = normalized.slice('uploads/'.length)
-        return path.join(baseUploadDir, ...relative.split('/'))
+const deleteS3Object = async(s3Key) => {
+    if (!s3Key) return
+    try {
+        await s3Client.send(new DeleteObjectCommand({
+            Bucket: S3_BUCKET,
+            Key: s3Key
+        }))
+    } catch (error) {
+        console.error('Error deleting S3 object:', error)
     }
-
-    return path.join(process.cwd(), storedPath)
 }
 
 const sanitizeContent = (content) => sanitizeHtml(content || '', {
@@ -156,7 +157,7 @@ const saveMediaRecords = async(article, files, videoLinks) => {
                 articleId: article.id,
                 type: 'image',
                 title: file.originalname,
-                storagePath: relativeUploadPath(file.path)
+                storagePath: file.key || file.location // S3 key
             })
         )
     })
@@ -167,7 +168,7 @@ const saveMediaRecords = async(article, files, videoLinks) => {
                 articleId: article.id,
                 type: 'document',
                 title: file.originalname,
-                storagePath: relativeUploadPath(file.path)
+                storagePath: file.key || file.location // S3 key
             })
         )
     })
@@ -208,17 +209,8 @@ const deleteMediaRecords = async(mediaIds = [], userId) => {
     const deletions = records
         .filter(record => record.article && record.article.userId === userId)
         .map(async(record) => {
-            if (record.storagePath) {
-                const absolutePath = resolveAbsoluteStoragePath(record.storagePath)
-                if (!absolutePath) {
-                    return
-                }
-
-                fs.unlink(absolutePath, (error) => {
-                    if (error && error.code !== 'ENOENT') {
-                        console.error('Failed to remove media file:', error.message)
-                    }
-                })
+            if (record.storagePath && record.type !== 'video') {
+                await deleteS3Object(record.storagePath)
             }
 
             await record.destroy()
@@ -383,15 +375,24 @@ router.get('/:id', asyncHandler(async(req, res, next) => {
     }
 
     const articlePlain = article.get({ plain: true })
-    const mediaWithEmbeds = (articlePlain.media || []).map((media) => (
-        media.type === 'video'
-            ? { ...media, embedUrl: buildEmbeddableUrl(media.externalUrl) }
-            : media
-    ))
+    
+    // Generate signed URLs for S3 media
+    const mediaWithUrls = await Promise.all((articlePlain.media || []).map(async(media) => {
+        if (media.type === 'video') {
+            return { ...media, embedUrl: buildEmbeddableUrl(media.externalUrl) }
+        }
+        
+        if (media.storagePath) {
+            const signedUrl = await getS3SignedUrl(media.storagePath)
+            return { ...media, url: signedUrl }
+        }
+        
+        return media
+    }))
 
     res.status(200).render('show', {
         ...articlePlain,
-        media: mediaWithEmbeds,
+        media: mediaWithUrls,
         isOwner
     })
 }))

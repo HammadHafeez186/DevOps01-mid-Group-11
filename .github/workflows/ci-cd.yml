@@ -201,7 +201,7 @@ jobs:
         docker push $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:latest
         echo "IMAGE_URI=$ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:$IMAGE_TAG" >> $GITHUB_ENV
 
-  # Stage 5: Terraform (runs in parallel with Docker build)
+  # Terraform job - runs only when explicitly triggered with [terraform] commit message
   terraform:
     name: 🏗️ Terraform Infrastructure
     runs-on: ubuntu-latest
@@ -224,47 +224,6 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ env.AWS_REGION }}
 
-    - name: 🪣 Ensure S3 Backend Resources
-      env:
-        TF_BACKEND_BUCKET: ${{ secrets.TF_BACKEND_BUCKET }}
-        TF_BACKEND_TABLE: ${{ secrets.TF_BACKEND_TABLE }}
-      run: |
-        set -e
-        
-        if [ -z "$TF_BACKEND_BUCKET" ] || [ -z "$TF_BACKEND_TABLE" ]; then
-          echo "❌ Error: GitHub secrets TF_BACKEND_BUCKET and TF_BACKEND_TABLE must be set"
-          echo "Please add these secrets in your repository settings:"
-          echo "  - TF_BACKEND_BUCKET (e.g., devops-articles-tf-state-1548)"
-          echo "  - TF_BACKEND_TABLE (e.g., terraform-state-lock)"
-          exit 1
-        fi
-        
-        echo "Checking S3 bucket: $TF_BACKEND_BUCKET"
-        if ! aws s3api head-bucket --bucket "$TF_BACKEND_BUCKET" 2>/dev/null; then
-          echo "Creating S3 bucket..."
-          aws s3api create-bucket --bucket "$TF_BACKEND_BUCKET" --region us-east-1
-          aws s3api put-bucket-versioning --bucket "$TF_BACKEND_BUCKET" --versioning-configuration Status=Enabled
-          aws s3api put-bucket-encryption --bucket "$TF_BACKEND_BUCKET" --server-side-encryption-configuration '{"Rules":[{"ApplyServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]}'
-          echo "✅ S3 bucket created and configured"
-        else
-          echo "✅ S3 bucket exists"
-        fi
-        
-        echo "Checking DynamoDB table: $TF_BACKEND_TABLE"
-        if ! aws dynamodb describe-table --table-name "$TF_BACKEND_TABLE" --region us-east-1 2>/dev/null; then
-          echo "Creating DynamoDB table..."
-          aws dynamodb create-table \
-            --table-name "$TF_BACKEND_TABLE" \
-            --attribute-definitions AttributeName=LockID,AttributeType=S \
-            --key-schema AttributeName=LockID,KeyType=HASH \
-            --billing-mode PAY_PER_REQUEST \
-            --region us-east-1
-          aws dynamodb wait table-exists --table-name "$TF_BACKEND_TABLE" --region us-east-1
-          echo "✅ DynamoDB table created"
-        else
-          echo "✅ DynamoDB table exists"
-        fi
-        
     - name: 🎯 Terraform Init
       working-directory: ./infra
       run: terraform init -input=false
@@ -285,8 +244,8 @@ jobs:
   deploy-app:
     name: 🚀 Deploy Application
     runs-on: ubuntu-latest
-    needs: [build-docker, terraform]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (success() || needs.terraform.result == 'skipped')
+    needs: [build-docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     environment: production
     
     steps:
@@ -332,13 +291,12 @@ jobs:
         kubectl get svc -n ${{ env.NAMESPACE }}
         kubectl rollout status deployment/app -n ${{ env.NAMESPACE }} --timeout=300s
 
-  # Stage 6: Deploy Monitoring (parallel with Application)
-  # Stage 6: Deploy Monitoring (after Terraform and Docker)
+  # Stage 6: Deploy Monitoring (after Docker build)
   deploy-monitoring:
     name: 📊 Deploy Monitoring
     runs-on: ubuntu-latest
-    needs: [build-docker, terraform]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (success() || needs.terraform.result == 'skipped')
+    needs: [build-docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
     - name: 📥 Checkout code
@@ -355,22 +313,50 @@ jobs:
       run: |
         aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
         
-    - name: 📊 Deploy Prometheus & Grafana
-      run: kubectl apply -f k8s/monitoring/
+    - name: 📦 Add Helm repository
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm repo update
+        
+    - name: 🔍 Check if monitoring exists
+      id: check_monitoring
+      run: |
+        if helm list -n monitoring | grep -q kube-prom; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "✅ Monitoring stack already deployed"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "📊 Monitoring stack not found - will deploy"
+        fi
+      continue-on-error: true
+        
+    - name: 📊 Deploy Prometheus & Grafana (if not exists)
+      if: steps.check_monitoring.outputs.exists != 'true'
+      run: |
+        kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+        helm install kube-prom prometheus-community/kube-prometheus-stack -n monitoring \
+          --set grafana.adminPassword='Admin@12345' \
+          --set prometheus.service.type=LoadBalancer \
+          --set grafana.service.type=LoadBalancer \
+          --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+          --wait --timeout=10m
+      continue-on-error: true
         
     - name: ⏳ Wait for Monitoring Pods
       run: |
-        kubectl wait --for=condition=ready pod -l app=prometheus -n monitoring --timeout=300s || echo "Prometheus not ready yet"
-        kubectl wait --for=condition=ready pod -l app=grafana -n monitoring --timeout=300s || echo "Grafana not ready yet"
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana -n monitoring --timeout=300s || echo "Grafana pods still starting"
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus -n monitoring --timeout=300s || echo "Prometheus pods still starting"
+      continue-on-error: true
         
     - name: 📋 Get Monitoring URLs
       run: |
         echo "## 📊 Monitoring Stack" >> $GITHUB_STEP_SUMMARY
-        PROMETHEUS_URL=$(kubectl get svc prometheus -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "pending")
-        GRAFANA_URL=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "pending")
+        PROMETHEUS_URL=$(kubectl get svc -n monitoring -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "pending")
+        GRAFANA_URL=$(kubectl get svc -n monitoring -l app.kubernetes.io/name=grafana -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "pending")
         echo "- **Prometheus:** http://$PROMETHEUS_URL:9090" >> $GITHUB_STEP_SUMMARY
-        echo "- **Grafana:** http://$GRAFANA_URL" >> $GITHUB_STEP_SUMMARY
-        echo "- **Grafana Login:** admin / admin123" >> $GITHUB_STEP_SUMMARY
+        echo "- **Grafana:** http://$GRAFANA_URL (admin/Admin@12345)" >> $GITHUB_STEP_SUMMARY
+      continue-on-error: true
 
   # Stage 7: Post-Deployment Validation
   smoke-tests:
@@ -415,8 +401,8 @@ jobs:
       if: always()
       run: |
         APP_URL=$(kubectl get svc app-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-        PROMETHEUS_URL=$(kubectl get svc prometheus -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "pending")
-        GRAFANA_URL=$(kubectl get svc grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "pending")
+        GRAFANA_URL=$(kubectl get svc kube-prom-grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "not-deployed")
+        PROMETHEUS_URL=$(kubectl get svc kube-prom-kube-prometheus-prometheus -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "not-deployed")
         
         echo "## 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
         echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
@@ -424,8 +410,12 @@ jobs:
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🔗 Application URLs" >> $GITHUB_STEP_SUMMARY
         echo "- **App:** http://$APP_URL" >> $GITHUB_STEP_SUMMARY
-        echo "- **Prometheus:** http://$PROMETHEUS_URL:9090" >> $GITHUB_STEP_SUMMARY
-        echo "- **Grafana:** http://$GRAFANA_URL" >> $GITHUB_STEP_SUMMARY
+        if [ "$GRAFANA_URL" != "not-deployed" ]; then
+          echo "- **Grafana:** http://$GRAFANA_URL (admin/Admin@12345)" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "$PROMETHEUS_URL" != "not-deployed" ]; then
+          echo "- **Prometheus:** http://$PROMETHEUS_URL:9090" >> $GITHUB_STEP_SUMMARY
+        fi
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 📊 Deployment Status" >> $GITHUB_STEP_SUMMARY
         echo "\`\`\`" >> $GITHUB_STEP_SUMMARY

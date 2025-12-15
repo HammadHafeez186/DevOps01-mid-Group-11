@@ -17,5 +17,6 @@ data:
   APP_URL: "http://aeab3ca7112b2462480d0ca854b12c1e-667800433.us-east-1.elb.amazonaws.com"
   COOKIE_SECURE: "false"
   AWS_REGION: "us-east-1"
+  S3_UPLOADS_BUCKET: "devops-articles-uploads"
   # Allow self-signed SSL certificates from RDS
   NODE_TLS_REJECT_UNAUTHORIZED: "0"

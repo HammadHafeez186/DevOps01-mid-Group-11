@@ -18,18 +18,50 @@ kubectl get pods -n monitoring
 kubectl get svc -n monitoring
 ```
 
+## Deploy with Helm (recommended for AWS/EKS)
+
+```bash
+# PowerShell
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm upgrade --install kps prometheus-community/kube-prometheus-stack `
+  --namespace monitoring --create-namespace `
+  -f monitoring-values.yaml `
+  --set-string grafana.adminPassword="<set-strong-password>" `
+  --wait --timeout 10m
+
+# WSL/bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+helm upgrade --install kps prometheus-community/kube-prometheus-stack \
+  --namespace monitoring --create-namespace \
+  -f monitoring-values.yaml \
+  --set-string grafana.adminPassword="<set-strong-password>" \
+  --wait --timeout 10m
+
+# Watch pods while Helm waits
+kubectl get pods -n monitoring -w
+```
+
+The `monitoring-values.yaml` at the repo root disables control-plane scraping for managed EKS, exposes Prometheus and Grafana through AWS load balancers, and provisions PVCs on `gp3` for persistence so you get CPU/memory metrics from kube-state-metrics and node-exporter out of the box.
+Service names will be prefixed with the release (e.g., `kps-grafana`, `kps-kube-prometheus-stack-prometheus`).
+
 ## Access URLs
 
 ### Get Prometheus URL:
 ```bash
 kubectl get svc prometheus -n monitoring
 # Access via LoadBalancer external IP on port 9090
+# If deployed with Helm and release name "kps":
+kubectl get svc kps-kube-prometheus-stack-prometheus -n monitoring
 ```
 
 ### Get Grafana URL:
 ```bash
 kubectl get svc grafana -n monitoring
 # Access via LoadBalancer external IP on port 3000
+# If deployed with Helm and release name "kps":
+kubectl get svc kps-grafana -n monitoring
 ```
 
 ### Default Grafana Credentials:

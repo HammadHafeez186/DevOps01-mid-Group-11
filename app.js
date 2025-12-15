@@ -6,7 +6,6 @@ const methodOverride = require('method-override')
 const articlesRouter = require('./routes/articles')
 const authRouter = require('./routes/auth')
 const { requireAuth, blockAdminFromUserRoutes } = require('./middleware/auth')
-const { baseUploadDir } = require('./middleware/uploads')
 
 const isProduction = process.env.NODE_ENV === 'production'
 const app = express()
@@ -19,8 +18,12 @@ if (isProduction) {
 
     sessionStore = new pgSession({
         conObject: {
-            connectionString: process.env.DATABASE_URL,
-            ssl: { rejectUnauthorized: false }
+            host: process.env.DB_HOST,
+            port: Number(process.env.DB_PORT || 5432),
+            database: process.env.DB_NAME,
+            user: process.env.DB_USERNAME,
+            password: process.env.DB_PASSWORD,
+            ssl: (process.env.DB_SSL === 'false') ? undefined : { rejectUnauthorized: false }
         },
         createTableIfMissing: true,
         tableName: 'session'
@@ -37,7 +40,6 @@ app.use(express.urlencoded({ extended: true }))
 app.use(methodOverride('_method'))
 app.use(morgan(isProduction ? 'combined' : 'dev'))
 app.use(express.static(path.join(__dirname, 'public')))
-app.use('/uploads', express.static(baseUploadDir))
 app.use(session({
     secret: sessionSecret,
     resave: false,
