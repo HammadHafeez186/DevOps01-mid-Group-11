@@ -3,8 +3,12 @@
 ## Application Metrics
 
 ### Request Metrics
-- `http_requests_total` - Total HTTP requests
+- `http_requests_total` - Total HTTP requests received
+  - Labels: method, status_code, endpoint
+  - Type: Counter
 - `http_request_duration_seconds` - Request duration histogram
+  - Labels: method, endpoint
+  - Type: Histogram
 
 ### Database Metrics
 - `db_connections_active` - Active database connections
