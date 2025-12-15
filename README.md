@@ -5,72 +5,31 @@
 
 A containerized Node.js application with Express, Sequelize ORM, and PostgreSQL database, featuring a complete DevOps pipeline with CI/CD automation, Kubernetes orchestration, and infrastructure as code with Terraform. The application supports file uploads with persistent storage and includes comprehensive monitoring capabilities.
 
-## ✨ Key Features
+## 📚 Table of Contents
 
-- **Full Stack Application**: Node.js/Express backend with EJS templating
-- **User Authentication**: Complete auth system with session management
-- **File Uploads**: Support for images and documents with persistent EBS storage
-- **Admin Panel**: User management and content moderation
-- **Complaint System**: User feedback and reporting mechanism
-- **Database ORM**: Sequelize with PostgreSQL
-- **Containerization**: Docker and Docker Compose
-- **Kubernetes Ready**: Complete K8s manifests with StatefulSets and PVCs
-- **Infrastructure as Code**: Terraform for AWS resource provisioning
-- **Configuration Management**: Ansible playbooks for automated deployment
-- **CI/CD Pipeline**: GitHub Actions with automated testing and deployment
-- **Production Deployment**: AWS EKS with LoadBalancer and persistent storage
-- **Monitoring**: Prometheus and Grafana integration ready
+- [How to Run the Application](#how-to-run-the-application)
+  - [Local Development](#local-development)
+  - [Docker Compose](#docker-compose)
+  - [Kubernetes Deployment](#kubernetes-deployment)
+- [Infrastructure Setup](#infrastructure-setup)
+  - [AWS EKS with Terraform](#aws-eks-with-terraform)
+  - [EBS CSI Driver Setup](#ebs-csi-driver-setup)
+- [Infrastructure Teardown](#infrastructure-teardown)
+- [DevOps Report](./devops_report.md)
+- [Additional Resources](#additional-resources)
 
-## 🛠️ Technology Stack
+## 🚀 How to Run the Application
 
-### Application
-- **Runtime**: Node.js 18
-- **Framework**: Express.js
-- **Template Engine**: EJS
-- **ORM**: Sequelize
-- **Database**: PostgreSQL 15
-- **File Uploads**: Multer with persistent storage
-- **Authentication**: Express-session with bcrypt
-- **Email**: Resend API
+### Local Development
 
-### DevOps & Infrastructure
-- **Containerization**: Docker, Docker Compose
-- **Orchestration**: Kubernetes (EKS)
-- **Infrastructure as Code**: Terraform
-- **Configuration Management**: Ansible
-- **CI/CD**: GitHub Actions
-- **Cloud Provider**: AWS
-  - EKS (Elastic Kubernetes Service)
-  - RDS (PostgreSQL)
-  - EBS (Elastic Block Store) for persistent volumes
-  - VPC with public/private subnets
-  - Application Load Balancer
-- **Container Registry**: Amazon ECR, Docker Hub
-- **Monitoring**: Prometheus, Grafana (configured)
+Run the application directly on your machine without Docker:
 
-### AWS Services Used
-- **EKS**: Managed Kubernetes cluster
-- **EBS CSI Driver**: Persistent volume provisioning
-- **RDS**: Managed PostgreSQL database
-- **VPC**: Network isolation and security
-- **IAM**: Role-based access control
-- **ECR**: Private container registry
-- **CloudWatch**: Logging and metrics
-
-## 🌐 Live Demo (Railway)
-
-- Articles: https://web-production-cf2cb.up.railway.app/articles
-
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Docker and Docker Compose
-- Node.js 18+ (for local development)
+#### Prerequisites
+- Node.js 18 or higher
+- PostgreSQL 15
 - Git
 
-### Using Docker Compose (Recommended)
+#### Steps
 
 1. **Clone the repository**
    ```bash
@@ -78,58 +37,639 @@ A containerized Node.js application with Express, Sequelize ORM, and PostgreSQL 
    cd DevOps01-mid-Group-11
    ```
 
-2. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your preferred values
-   ```
-
-3. **Configure Kubernetes secrets (for K8s deployment)**
-   ```bash
-   cp k8s/02-secret.yaml.example k8s/02-secret.yaml
-   # Edit k8s/02-secret.yaml and replace all REPLACE_WITH_* placeholders:
-   # - DB_PASSWORD: Your PostgreSQL password
-   # - RESEND_API_KEY: Your Resend API key for email
-   # - SESSION_SECRET: Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-   # - DATABASE_URL: Full PostgreSQL connection string
-   # NOTE: Never commit k8s/02-secret.yaml - it's in .gitignore
-   ```
-
-4. **Start the application**
-   ```bash
-   docker-compose up --build
-   ```
-
-4. **Access the application**
-   - Application: http://localhost:3000
-   - Health Check: http://localhost:3000/health
-
-### Local Development
-
-1. **Install dependencies**
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. **Start PostgreSQL (using Docker)**
+3. **Set up PostgreSQL database**
+   
+   Option A: Using Docker for database only
    ```bash
    docker run -d --name postgres-dev \
-     -e POSTGRES_USER=devops_user \
-     -e POSTGRES_PASSWORD=secure_password_123 \
+     -e POSTGRES_USER=postgres \
+     -e POSTGRES_PASSWORD=Hammad1234 \
      -e POSTGRES_DB=devops_db \
-     -p 5432:5432 postgres:15-alpine
+     -p 5432:5432 \
+     postgres:15-alpine
    ```
 
-3. **Run database migrations**
+   Option B: Using local PostgreSQL installation
+   ```bash
+   # Create database
+   createdb devops_db
+   ```
+
+4. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` file:
+   ```env
+   NODE_ENV=development
+   PORT=3000
+   DB_HOST=localhost
+   DB_PORT=5432
+   DB_USERNAME=postgres
+   DB_PASSWORD=Hammad1234
+   DB_NAME=devops_db
+   DB_SSL=false
+   SESSION_SECRET=your-secret-key-here
+   RESEND_API_KEY=your-resend-api-key
+   EMAIL_FROM=DevOps Articles <noreply@tabeebemail.me>
+   APP_URL=http://localhost:3000
+   ```
+
+5. **Run database migrations and seeders**
    ```bash
    npx sequelize-cli db:migrate
    npx sequelize-cli db:seed:all
    ```
 
-4. **Start the application**
+6. **Start the application**
    ```bash
+   # Development mode (with hot reload)
    npm run dev
+
+   # Production mode
+   npm start
    ```
+
+7. **Access the application**
+   - Application: http://localhost:3000
+   - Health Check: http://localhost:3000/health
+
+---
+
+### Docker Compose
+
+Run the entire stack (app + database) using Docker Compose:
+
+#### Prerequisites
+- Docker Desktop or Docker Engine
+- Docker Compose (included with Docker Desktop)
+
+#### Steps
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/HammadHafeez186/DevOps01-mid-Group-11.git
+   cd DevOps01-mid-Group-11
+   ```
+
+2. **Configure environment variables (optional)**
+   ```bash
+   cp .env.example .env
+   # Edit .env if you want custom values (otherwise defaults will be used)
+   ```
+
+3. **Start all services**
+   ```bash
+   docker-compose up --build
+   ```
+
+   Or run in detached mode:
+   ```bash
+   docker-compose up -d --build
+   ```
+
+4. **Verify services are running**
+   ```bash
+   docker-compose ps
+   ```
+
+5. **View logs**
+   ```bash
+   # All services
+   docker-compose logs -f
+
+   # Specific service
+   docker-compose logs -f app
+   docker-compose logs -f db
+   ```
+
+6. **Access the application**
+   - Application: http://localhost:3000
+   - Health Check: http://localhost:3000/health
+
+7. **Stop the application**
+   ```bash
+   # Stop containers
+   docker-compose stop
+
+   # Stop and remove containers (data persists in volumes)
+   docker-compose down
+
+   # Stop and remove containers AND volumes (deletes all data)
+   docker-compose down -v
+   ```
+
+#### Docker Compose Services
+
+The `docker-compose.yml` includes:
+- **app**: Node.js application container
+- **db**: PostgreSQL 15 database container
+
+Features:
+- **Persistent storage**: Database data and uploads persist in Docker volumes
+- **Health checks**: Automatic health monitoring for both services
+- **Auto-restart**: Services restart automatically on failure
+- **Internal networking**: Services communicate through Docker's internal network
+
+#### Available Commands
+```bash
+# Build and start
+docker-compose up --build
+
+# Run tests
+npm run test:docker
+
+# View logs
+docker-compose logs -f
+
+# Execute commands in running container
+docker-compose exec app npm run migrate
+docker-compose exec db psql -U postgres -d devops_db
+
+# Clean up everything
+docker-compose down -v
+docker system prune -a
+```
+
+---
+
+### Kubernetes Deployment
+
+Deploy the application on Kubernetes (local or cloud):
+
+#### Prerequisites
+- Kubernetes cluster (Minikube, Kind, EKS, GKE, AKS, or K3s)
+- kubectl configured to access your cluster
+- For persistent storage: StorageClass supporting ReadWriteOnce volumes
+
+#### Steps
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/HammadHafeez186/DevOps01-mid-Group-11.git
+   cd DevOps01-mid-Group-11/k8s
+   ```
+
+2. **Verify cluster connectivity**
+   ```bash
+   kubectl cluster-info
+   kubectl get nodes
+   ```
+
+3. **Configure secrets**
+   ```bash
+   # Copy the example secret file
+   cp 02-secret.yaml.example 02-secret.yaml
+   ```
+
+   Edit `02-secret.yaml` and replace placeholders with base64-encoded values:
+   ```bash
+   # Generate base64 encoded values:
+   echo -n "your-password" | base64
+   echo -n "your-resend-api-key" | base64
+   echo -n "$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")" | base64
+   echo -n "postgresql://postgres:your-password@postgres-service:5432/devops_db" | base64
+   ```
+
+4. **Deploy to Kubernetes**
+   ```bash
+   # Apply manifests in order
+   kubectl apply -f 00-namespace.yaml
+   kubectl apply -f 01-configmap.yaml
+   kubectl apply -f 02-secret.yaml
+   kubectl apply -f 03-postgres-storage.yaml
+   kubectl apply -f 04-postgres-statefulset.yaml
+   kubectl apply -f 05-postgres-service.yaml
+   kubectl apply -f 12-uploads-storage.yaml
+   kubectl apply -f 06-app-deployment.yaml
+   kubectl apply -f 07-app-service.yaml
+   ```
+
+   Or apply all at once:
+   ```bash
+   kubectl apply -f .
+   ```
+
+5. **Verify deployment**
+   ```bash
+   # Check all resources in namespace
+   kubectl get all -n devops-articles
+
+   # Check pods status
+   kubectl get pods -n devops-articles
+
+   # Check persistent volumes
+   kubectl get pvc -n devops-articles
+
+   # View pod logs
+   kubectl logs -n devops-articles -l component=app -f
+   ```
+
+6. **Access the application**
+   
+   For **LoadBalancer** service (cloud environments):
+   ```bash
+   # Get external IP/hostname
+   kubectl get svc app-service -n devops-articles
+   
+   # Access via: http://<EXTERNAL-IP>:3000
+   ```
+
+   For **NodePort** service (local clusters):
+   ```bash
+   # Get NodePort
+   kubectl get svc app-service -n devops-articles
+   
+   # Access via: http://<NODE-IP>:<NODE-PORT>
+   # Or use kubectl proxy
+   kubectl port-forward -n devops-articles svc/app-service 3000:3000
+   # Then access: http://localhost:3000
+   ```
+
+7. **Monitor the application**
+   ```bash
+   # Watch pod status
+   kubectl get pods -n devops-articles -w
+
+   # Describe resources
+   kubectl describe pod -n devops-articles <pod-name>
+   kubectl describe pvc -n devops-articles
+
+   # Check events
+   kubectl get events -n devops-articles --sort-by='.lastTimestamp'
+   ```
+
+8. **Scale the application** (if using compatible storage)
+   ```bash
+   kubectl scale deployment app -n devops-articles --replicas=3
+   ```
+
+9. **Update the application**
+   ```bash
+   # Update image
+   kubectl set image deployment/app app=your-registry/app:new-tag -n devops-articles
+
+   # Or edit deployment
+   kubectl edit deployment app -n devops-articles
+
+   # Rollback if needed
+   kubectl rollout undo deployment/app -n devops-articles
+   ```
+
+10. **Clean up**
+    ```bash
+    # Delete all resources
+    kubectl delete -f .
+
+    # Or delete namespace (removes everything)
+    kubectl delete namespace devops-articles
+    ```
+
+#### For AWS EKS Deployment
+See the [Infrastructure Setup](#infrastructure-setup) section below for detailed AWS EKS deployment with Terraform.
+
+---
+
+## 🏗️ Infrastructure Setup
+
+### AWS EKS with Terraform
+
+Complete infrastructure provisioning on AWS using Terraform:
+
+#### Prerequisites
+- AWS CLI installed and configured
+- Terraform installed (v1.0+)
+- kubectl installed
+- Valid AWS credentials with appropriate permissions
+
+#### Steps
+
+1. **Navigate to infrastructure directory**
+   ```bash
+   cd infra
+   ```
+
+2. **Configure Terraform variables**
+   ```bash
+   cp terraform.tfvars.example terraform.tfvars
+   ```
+
+   Edit `terraform.tfvars`:
+   ```hcl
+   aws_region          = "us-east-1"
+   project_name        = "devops-articles"
+   environment         = "production"
+   
+   # VPC Configuration
+   vpc_cidr            = "10.0.0.0/16"
+   availability_zones  = ["us-east-1a", "us-east-1b"]
+   
+   # EKS Configuration
+   use_eks             = true
+   eks_cluster_version = "1.28"
+   
+   # RDS Configuration (optional)
+   db_instance_class   = "db.t3.micro"
+   db_name             = "devops_db"
+   db_username         = "postgres"
+   db_password         = "your-secure-password"  # Use AWS Secrets Manager in production
+   
+   # EC2 Configuration (if not using EKS)
+   ec2_instance_type   = "t2.medium"
+   ec2_key_name        = "your-key-pair-name"
+   ```
+
+3. **Initialize Terraform**
+   ```bash
+   terraform init
+   ```
+
+4. **Review planned changes**
+   ```bash
+   terraform plan
+   ```
+
+5. **Apply infrastructure**
+   ```bash
+   terraform apply
+   ```
+
+   Type `yes` when prompted. This creates:
+   - VPC with public and private subnets across 2 AZs
+   - Internet Gateway and NAT Gateway
+   - Security groups for EKS and RDS
+   - EKS cluster with managed node groups
+   - RDS PostgreSQL instance (if configured)
+   - IAM roles and policies
+
+6. **Configure kubectl for EKS**
+   ```bash
+   aws eks update-kubeconfig --region us-east-1 --name devops-articles-eks-cluster
+   ```
+
+7. **Verify cluster access**
+   ```bash
+   kubectl get nodes
+   kubectl get namespaces
+   ```
+
+8. **Get infrastructure outputs**
+   ```bash
+   terraform output
+   ```
+
+   Important outputs:
+   - `eks_cluster_endpoint`: EKS API server endpoint
+   - `eks_cluster_name`: Name of the EKS cluster
+   - `rds_endpoint`: PostgreSQL database endpoint (if using RDS)
+   - `vpc_id`: VPC identifier
+
+9. **Update Kubernetes ConfigMap with RDS endpoint**
+   
+   If using RDS, update `k8s/01-configmap.aws.yaml`:
+   ```bash
+   # Get RDS endpoint
+   terraform output rds_endpoint
+   
+   # Update ConfigMap
+   # Replace REPLACE_WITH_RDS_ENDPOINT with the actual endpoint
+   ```
+
+---
+
+### EBS CSI Driver Setup
+
+For persistent storage on EKS, install the EBS CSI driver:
+
+#### Prerequisites
+- EKS cluster running
+- kubectl configured
+- AWS CLI configured
+
+#### Steps
+
+1. **Get your AWS Account ID and OIDC Provider**
+   ```bash
+   export AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+   export AWS_REGION=us-east-1
+   export CLUSTER_NAME=devops-articles-eks-cluster
+   
+   # Get OIDC provider
+   export OIDC_PROVIDER=$(aws eks describe-cluster --name $CLUSTER_NAME --region $AWS_REGION \
+     --query "cluster.identity.oidc.issuer" --output text | sed -e "s/^https:\/\///")
+   
+   echo "Account ID: $AWS_ACCOUNT_ID"
+   echo "OIDC Provider: $OIDC_PROVIDER"
+   ```
+
+2. **Create IAM policy for EBS CSI Driver**
+   ```bash
+   cd infra
+   
+   aws iam create-policy \
+     --policy-name AmazonEKS_EBS_CSI_Driver_Policy \
+     --policy-document file://ebs-csi-policy.json
+   ```
+
+3. **Update trust policy with your OIDC provider**
+   ```bash
+   # Edit ebs-csi-trust-policy.json and replace:
+   # - <AWS_ACCOUNT_ID> with your account ID
+   # - <OIDC_PROVIDER> with your OIDC provider URL
+   
+   # Or use sed (on Linux/Mac):
+   sed "s/<AWS_ACCOUNT_ID>/$AWS_ACCOUNT_ID/g" ebs-trust.json | \
+   sed "s|<OIDC_PROVIDER>|$OIDC_PROVIDER|g" > ebs-csi-trust-policy-updated.json
+   ```
+
+4. **Create IAM role for EBS CSI Driver**
+   ```bash
+   aws iam create-role \
+     --role-name AmazonEKS_EBS_CSI_DriverRole \
+     --assume-role-policy-document file://ebs-csi-trust-policy-updated.json
+   
+   # Attach the policy
+   aws iam attach-role-policy \
+     --role-name AmazonEKS_EBS_CSI_DriverRole \
+     --policy-arn arn:aws:iam::$AWS_ACCOUNT_ID:policy/AmazonEKS_EBS_CSI_Driver_Policy
+   ```
+
+5. **Install EBS CSI Driver as EKS addon**
+   ```bash
+   aws eks create-addon \
+     --cluster-name $CLUSTER_NAME \
+     --addon-name aws-ebs-csi-driver \
+     --service-account-role-arn arn:aws:iam::$AWS_ACCOUNT_ID:role/AmazonEKS_EBS_CSI_DriverRole \
+     --region $AWS_REGION
+   ```
+
+6. **Verify installation**
+   ```bash
+   # Check addon status
+   aws eks describe-addon \
+     --cluster-name $CLUSTER_NAME \
+     --addon-name aws-ebs-csi-driver \
+     --region $AWS_REGION
+   
+   # Check driver pods
+   kubectl get pods -n kube-system | grep ebs-csi
+   
+   # Should see:
+   # ebs-csi-controller-xxx (2/2 Running)
+   # ebs-csi-node-xxx (3/3 Running on each node)
+   ```
+
+7. **Verify storage class**
+   ```bash
+   kubectl get storageclass
+   
+   # Should see gp2 or gp3 storage class
+   ```
+
+Now you can deploy the application with persistent storage support!
+
+---
+
+## 🗑️ Infrastructure Teardown
+
+### Kubernetes Cleanup
+
+Remove all Kubernetes resources:
+
+```bash
+# Delete all application resources
+cd k8s
+kubectl delete -f .
+
+# Or delete namespace (removes everything in it)
+kubectl delete namespace devops-articles
+
+# Verify cleanup
+kubectl get all -n devops-articles
+```
+
+### AWS Infrastructure Cleanup
+
+Destroy all AWS resources created by Terraform:
+
+#### Important: Steps to Avoid Errors
+
+1. **Delete Kubernetes resources first** (to release EBS volumes)
+   ```bash
+   kubectl delete -f k8s/
+   kubectl delete namespace devops-articles
+   ```
+
+2. **Wait for LoadBalancers to be deleted** (if any)
+   ```bash
+   kubectl get svc --all-namespaces
+   # Ensure no LoadBalancer services remain
+   ```
+
+3. **Remove EBS CSI Driver addon**
+   ```bash
+   aws eks delete-addon \
+     --cluster-name devops-articles-eks-cluster \
+     --addon-name aws-ebs-csi-driver \
+     --region us-east-1
+   ```
+
+4. **Delete IAM roles and policies**
+   ```bash
+   # Detach policy
+   aws iam detach-role-policy \
+     --role-name AmazonEKS_EBS_CSI_DriverRole \
+     --policy-arn arn:aws:iam::$AWS_ACCOUNT_ID:policy/AmazonEKS_EBS_CSI_Driver_Policy
+   
+   # Delete role
+   aws iam delete-role --role-name AmazonEKS_EBS_CSI_DriverRole
+   
+   # Delete policy
+   aws iam delete-policy \
+     --policy-arn arn:aws:iam::$AWS_ACCOUNT_ID:policy/AmazonEKS_EBS_CSI_Driver_Policy
+   ```
+
+5. **Run Terraform destroy**
+   ```bash
+   cd infra
+   terraform destroy
+   ```
+
+   Type `yes` when prompted.
+
+6. **Verify all resources are deleted**
+   ```bash
+   # Check EKS clusters
+   aws eks list-clusters --region us-east-1
+   
+   # Check VPCs
+   aws ec2 describe-vpcs --region us-east-1 --filters "Name=tag:Name,Values=*devops-articles*"
+   
+   # Check RDS instances
+   aws rds describe-db-instances --region us-east-1
+   
+   # Check EBS volumes
+   aws ec2 describe-volumes --region us-east-1 --filters "Name=tag:kubernetes.io/cluster/*,Values=owned"
+   ```
+
+7. **Manual cleanup (if needed)**
+   
+   If Terraform destroy fails, manually delete:
+   - Orphaned EBS volumes
+   - Stray load balancers
+   - ENIs (Elastic Network Interfaces)
+   - Security groups
+
+   ```bash
+   # Delete orphaned EBS volumes
+   aws ec2 describe-volumes --region us-east-1 --filters "Name=status,Values=available" \
+     --query "Volumes[*].VolumeId" --output text | \
+     xargs -I {} aws ec2 delete-volume --volume-id {}
+   ```
+
+#### Cost Considerations
+
+After teardown, verify no resources are left to avoid charges:
+- EKS cluster (most expensive)
+- NAT Gateway (~$32/month)
+- RDS instances
+- EBS volumes
+- Elastic IPs (when not attached)
+
+For detailed cleanup guide, see [infra/CLEANUP.md](./infra/CLEANUP.md).
+
+---
+
+## 📚 Additional Resources
+
+
+### Documentation
+
+- **[DevOps Report](./devops_report.md)** - Comprehensive DevOps analysis
+- **[AWS Deployment Guide](./AWS_DEPLOYMENT.md)** - Detailed AWS deployment steps
+- **[Railway Setup Guide](./RAILWAY_SETUP.md)** - Railway deployment instructions
+- **[Secret Management](./SECRET_MANAGEMENT.md)** - Managing sensitive data
+- **[Infrastructure Cleanup](./infra/CLEANUP.md)** - Teardown procedures
+- **[Ansible README](./ansible/README.md)** - Automation with Ansible
+- **[Monitoring Setup](./k8s/monitoring/README.md)** - Prometheus & Grafana
+
+### External References
+
+- [Docker Documentation](https://docs.docker.com/)
+- [Kubernetes Documentation](https://kubernetes.io/docs/)
+- [Terraform AWS Provider](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
+- [GitHub Actions Documentation](https://docs.github.com/en/actions)
+- [AWS EKS Best Practices](https://aws.github.io/aws-eks-best-practices/)
+- [Sequelize ORM](https://sequelize.org/)
+- [Express.js](https://expressjs.com/)
+
+---
 
 ## 📁 Project Structure
 
