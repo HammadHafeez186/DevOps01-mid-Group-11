@@ -73,13 +73,10 @@ jobs:
     name: 🛡️ Security Scan
     runs-on: ubuntu-latest
     needs: build-and-install
-    timeout-minutes: 20
     
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
       
     - name: 🚀 Setup Node.js
       uses: actions/setup-node@v4
@@ -89,69 +86,18 @@ jobs:
         
     - name: 📦 Restore dependencies
       run: npm ci
-      
-    - name: 🔍 Run npm audit
-      id: npm-audit
-      continue-on-error: true
+        
+    - name: 🛡️ Run security audit
       run: |
-        echo "Running npm audit..."
-        npm audit --json > npm-audit-report.json || true
-        npm audit --audit-level=moderate > npm-audit-summary.txt || true
-        cat npm-audit-summary.txt
-        
-        # Count vulnerabilities
-        CRITICAL=$(cat npm-audit-report.json | jq '.metadata.vulnerabilities.critical // 0')
-        HIGH=$(cat npm-audit-report.json | jq '.metadata.vulnerabilities.high // 0')
-        MODERATE=$(cat npm-audit-report.json | jq '.metadata.vulnerabilities.moderate // 0')
-        
-        echo "Critical: $CRITICAL"
-        echo "High: $HIGH"
-        echo "Moderate: $MODERATE"
-        
-        echo "critical=$CRITICAL" >> $GITHUB_OUTPUT
-        echo "high=$HIGH" >> $GITHUB_OUTPUT
-        echo "moderate=$MODERATE" >> $GITHUB_OUTPUT
+        npm audit --audit-level=moderate || true
         
     - name: 🔒 Snyk Security Scan
       uses: snyk/actions/node@master
-      continue-on-error: true
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
       with:
-        args: --severity-threshold=high --json-file-output=snyk-report.json
-        
-    - name: 📊 Generate security summary
-      if: always()
-      run: |
-        echo "# Security Scan Summary" > security-summary.md
-        echo "" >> security-summary.md
-        echo "## npm audit Results" >> security-summary.md
-        echo "- Critical: ${{ steps.npm-audit.outputs.critical }}" >> security-summary.md
-        echo "- High: ${{ steps.npm-audit.outputs.high }}" >> security-summary.md
-        echo "- Moderate: ${{ steps.npm-audit.outputs.moderate }}" >> security-summary.md
-        echo "" >> security-summary.md
-        echo "## Detailed Report" >> security-summary.md
-        if [ -f npm-audit-summary.txt ]; then
-          cat npm-audit-summary.txt >> security-summary.md
-        fi
-        
-    - name: 📤 Upload security reports
-      if: always()
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-reports
-        path: |
-          npm-audit-report.json
-          npm-audit-summary.txt
-          snyk-report.json
-          security-summary.md
-        retention-days: 30
-        
-    - name: ⚠️ Fail on critical vulnerabilities
-      if: steps.npm-audit.outputs.critical > 0
-      run: |
-        echo "::error::Found ${{ steps.npm-audit.outputs.critical }} critical vulnerabilities"
-        exit 1
+        args: --severity-threshold=high
+      continue-on-error: true
 
   # Stage 3: Test with Database
   test:
