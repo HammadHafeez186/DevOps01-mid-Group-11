@@ -13,12 +13,11 @@ module.exports = {
       const hashedPassword = await bcrypt.hash('Admin@1234', 10)
       
       await queryInterface.bulkInsert('Users', [{
-        username: 'admin',
         email: 'admin@devops.local',
-        password: hashedPassword,
+        passwordHash: hashedPassword,
         isAdmin: true,
-        emailVerified: true,
-        blocked: false,
+        isVerified: true,
+        isBlocked: false,
         createdAt: new Date(),
         updatedAt: new Date()
       }], {})

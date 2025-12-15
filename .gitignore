@@ -13,6 +13,7 @@ build/
 infra/ebs-trust-temp.json
 infra/ebs-trust.json
 infra/trust.json
+CURRENT_ARCHITECTURE.md
 
 # Documentation files rejected from version control
 VIVA-CHEATSHEET.md
@@ -48,6 +49,9 @@ infra/crash.log
 infra/crash.*.log
 infra/ebs-csi-policy.json
 infra/ebs-csi-trust-policy.json
+infra/ebs-trust-temp.json
+infra/ebs-trust.json
+infra/trust.json
 
 # AWS credentials
 *.pem

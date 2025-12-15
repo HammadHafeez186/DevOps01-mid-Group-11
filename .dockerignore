@@ -13,3 +13,10 @@ test
 *.jpeg
 *.md
 volumes
+infra
+.terraform
+terraform.tfstate*
+k8s
+scripts
+ansible
+PICS

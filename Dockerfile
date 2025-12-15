@@ -20,12 +20,10 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy application code
 COPY --chown=nodeuser:nodejs . .
 
-# Create uploads directory with correct permissions
+# Create uploads directory with correct permissions and make scripts executable
 RUN mkdir -p /app/uploads/images /app/uploads/documents && \
-    chown -R nodeuser:nodejs /app/uploads
-
-# Make startup script executable
-RUN chmod +x scripts/docker-start.sh
+    chown -R nodeuser:nodejs /app/uploads && \
+    chmod +x scripts/docker-start.sh 2>/dev/null || true
 
 # Switch to non-root user
 USER nodeuser

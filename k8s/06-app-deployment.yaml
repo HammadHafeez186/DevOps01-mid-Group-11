@@ -7,7 +7,7 @@ metadata:
     app: devops-articles
     component: app
 spec:
-  replicas: 1  # Single replica due to ReadWriteOnce volume
+  replicas: 1  # Now supports multiple replicas with S3 storage
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -49,7 +49,7 @@ spec:
         image: 322467327252.dkr.ecr.us-east-1.amazonaws.com/devops-articles:latest
         imagePullPolicy: Always
         command: ["/bin/sh"]
-        args: ["-c", "npx sequelize-cli db:migrate --env production && npx sequelize-cli db:seed:all --env production || echo 'Seeders completed' && node server.js"]
+        args: ["-c", "npx sequelize-cli db:migrate --env production && (npx sequelize-cli db:seed:all --env production || echo 'Seeders completed') && node server.js"]
         ports:
         - containerPort: 3000
           name: http
@@ -116,6 +116,11 @@ spec:
             configMapKeyRef:
               name: app-config
               key: NODE_TLS_REJECT_UNAUTHORIZED
+        - name: S3_UPLOADS_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: S3_UPLOADS_BUCKET
         # From Secret
         - name: DB_PASSWORD
           valueFrom:
@@ -164,10 +169,3 @@ spec:
           preStop:
             exec:
               command: ["/bin/sh", "-c", "sleep 15"]  # Graceful shutdown delay
-        volumeMounts:
-        - name: uploads
-          mountPath: /app/uploads
-      volumes:
-      - name: uploads
-        persistentVolumeClaim:
-          claimName: uploads-pvc

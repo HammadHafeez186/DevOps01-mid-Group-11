@@ -188,3 +188,36 @@ resource "aws_iam_openid_connect_provider" "eks" {
     Name = "${var.project_name}-eks-oidc"
   }
 }
+
+# IAM Role for app pods (for S3 access via service account)
+resource "aws_iam_role" "app_pods" {
+  count       = var.use_eks ? 1 : 0
+  name        = "${var.project_name}-app-pods-role"
+  description = "IAM role for application pods to access AWS services"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Effect = "Allow"
+      Principal = {
+        Federated = aws_iam_openid_connect_provider.eks[0].arn
+      }
+      Condition = {
+        StringEquals = {
+          "${replace(aws_iam_openid_connect_provider.eks[0].url, "https://", "")}:sub" = "system:serviceaccount:devops-articles:app-sa"
+          "${replace(aws_iam_openid_connect_provider.eks[0].url, "https://", "")}:aud" = "sts.amazonaws.com"
+        }
+      }
+    }]
+  })
+
+  tags = {
+    Name = "${var.project_name}-app-pods-role"
+  }
+}
+
+output "app_pods_role_arn" {
+  value       = var.use_eks ? aws_iam_role.app_pods[0].arn : null
+  description = "ARN of IAM role for app pods"
+}
