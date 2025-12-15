@@ -321,6 +321,9 @@ jobs:
       env:
         RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
         SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        ANSIBLE_HOST_KEY_CHECKING: False
+        ANSIBLE_FORCE_COLOR: True
+        ANSIBLE_STDOUT_CALLBACK: yaml
       run: ansible-playbook playbook.yaml -v
         
     - name: ✅ Verify Deployment

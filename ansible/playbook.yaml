@@ -10,9 +10,10 @@
     ecr_registry: "322467327252.dkr.ecr.us-east-1.amazonaws.com"
     image_name: "devops-articles"
     image_tag: "latest"
-    # Application secrets - these should be set via environment variables or GitHub Secrets
-    resend_api_key: "{{ lookup('env', 'RESEND_API_KEY') | default('re_8AmZ4VaA_Kw2gnEeCVpwZYdWWqASPuZrw', true) }}"
-    session_secret: "{{ lookup('env', 'SESSION_SECRET') | default('7d97ecfef42be0514894f998773924f0b52a8016a428f42ee7e82cbfdfe692d3', true) }}"
+    # Application secrets - MUST be set via environment variables or GitHub Secrets
+    # No fallback values to prevent accidental exposure
+    resend_api_key: "{{ lookup('env', 'RESEND_API_KEY') }}"
+    session_secret: "{{ lookup('env', 'SESSION_SECRET') }}"
     
   tasks:
     - name: Check if kubectl is installed
