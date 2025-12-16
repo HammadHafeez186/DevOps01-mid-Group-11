@@ -1,4 +1,25 @@
 services:
+  # PostgreSQL Database Service
+  db:
+    image: postgres:15-alpine
+    container_name: devops_postgres
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-Hammad1234}
+      POSTGRES_DB: ${DB_NAME:-devops_db}
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d ${DB_NAME:-devops_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # Node.js Application Service
   app:
     build:
@@ -8,21 +29,28 @@ services:
     environment:
       NODE_ENV: docker
       PORT: ${PORT:-3000}
-      DB_HOST: host.docker.internal
-      DB_PORT: 5433
+      DB_HOST: db
+      DB_PORT: 5432
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-Hammad1234}
       DB_NAME: ${DB_NAME:-devops_db}
-      DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-Hammad1234}@host.docker.internal:5433/${DB_NAME:-devops_db}
+      DB_SSL: "false"
+      DATABASE_URL: postgresql://${DB_USERNAME:-postgres}:${DB_PASSWORD:-Hammad1234}@db:5432/${DB_NAME:-devops_db}
+      # Resend Email Configuration (Primary)
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      EMAIL_FROM: ${EMAIL_FROM:-DevOps Articles <noreply@tabeebemail.me>}
+      APP_URL: ${APP_URL:-http://localhost:3000}
     ports:
       - "3000:3000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - app-network
     volumes:
       - .:/app:ro
       - /app/node_modules
+      - uploads_data:/app/uploads  # Persistent storage for uploaded files
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "node", "healthcheck.js"]
@@ -36,4 +64,6 @@ networks:
 
 volumes:
   postgres_data:
+    driver: local
+  uploads_data:
     driver: local
