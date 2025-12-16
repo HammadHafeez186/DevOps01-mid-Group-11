@@ -1,0 +1,60 @@
+# Values for kube-prometheus-stack on AWS/EKS.
+# Collects cluster CPU/memory metrics via kube-state-metrics and node-exporter
+# and exposes Prometheus/Grafana through AWS load balancers.
+
+namespaceOverride: monitoring
+
+# Control-plane components are managed by AWS and not directly scrapeable.
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+
+defaultRules:
+  create: true
+
+alertmanager:
+  enabled: false
+
+prometheus:
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+  prometheusSpec:
+    retention: 15d
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp3
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+
+grafana:
+  adminPassword: "change-me"
+  service:
+    type: LoadBalancer
+    annotations:
+      service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
+  persistence:
+    enabled: true
+    storageClassName: gp3
+    accessModes:
+      - ReadWriteOnce
+    size: 5Gi
+  additionalDataSources: []
+  defaultDashboardsEnabled: true
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
