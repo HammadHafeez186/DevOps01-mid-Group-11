@@ -1,4 +1,21 @@
-name: DevOps CI/CD Pipeline
+# ==============================================================================
+# Step 6: CI/CD Pipeline (GitHub Actions)
+# ==============================================================================
+# Goal: Fully automated multi-stage pipeline.
+# Requirements:
+# 1. Build & test
+# 2. Security/ linting
+# 3. Docker build and push
+# 4. Terraform apply (infrastructure provisioning)
+# 5. Ansible deploy or kubectl apply
+# 6. Post-deploy smoke tests
+#
+# Extras:
+# - Step 7: Monitoring & Observability (Grafana + Prometheus) deployment
+# - Step 2: Infrastructure Provisioning with Terraform (Automated)
+# ==============================================================================
+
+name: DevOps CI/CD Pipeline // Step 6
 
 on:
   push:
@@ -19,7 +36,9 @@ env:
   NAMESPACE: devops-articles
 
 jobs:
-  # Stage 1: Build & Install Dependencies
+  # ==============================================================================
+  # Stage 1: Build & Dependencies (Step 6.1)
+  # ==============================================================================
   build-and-install:
     name: 🔨 Build & Install
     runs-on: ubuntu-latest
@@ -45,7 +64,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-node-
 
-  # Stage 2: Parallel Validation - Lint
+  # ==============================================================================
+  # Stage 2: Security & Linting (Step 6.2)
+  # ==============================================================================
   lint:
     name: 🔍 Lint Code
     runs-on: ubuntu-latest
@@ -68,7 +89,6 @@ jobs:
       run: |
         npx eslint . --ext .js || echo "ESLint found issues"
 
-  # Stage 2: Parallel Validation - Security
   security-scan:
     name: 🛡️ Security Scan
     runs-on: ubuntu-latest
@@ -92,6 +112,7 @@ jobs:
         npm audit --audit-level=moderate || true
         
     - name: 🔒 Snyk Security Scan
+      # Uses Snyk for vulnerability scanning
       uses: snyk/actions/node@master
       env:
         SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -99,12 +120,15 @@ jobs:
         args: --severity-threshold=high
       continue-on-error: true
 
-  # Stage 3: Test with Database
+  # ==============================================================================
+  # Stage 3: Testing (Step 6.1)
+  # ==============================================================================
   test:
     name: 🧪 Test with Database
     runs-on: ubuntu-latest
     needs: build-and-install
     
+    # Service Containers: Ephemeral DB for Integration Testing
     services:
       postgres:
         image: postgres:15-alpine
@@ -165,7 +189,9 @@ jobs:
           });
         "
 
-  # Stage 4: Build & Push Docker (parallel with Terraform)
+  # ==============================================================================
+  # Stage 4: Docker Build & Push (Step 6.3)
+  # ==============================================================================
   build-docker:
     name: 🐳 Build & Push Docker
     runs-on: ubuntu-latest
@@ -195,13 +221,18 @@ jobs:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
       run: |
+        # Multistage build (See Dockerfile)
         docker build -t $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:$IMAGE_TAG .
         docker tag $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:$IMAGE_TAG $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:latest
         docker push $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:$IMAGE_TAG
         docker push $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:latest
         echo "IMAGE_URI=$ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:$IMAGE_TAG" >> $GITHUB_ENV
 
-  # Terraform job - runs only when explicitly triggered with [terraform] commit message
+  # ==============================================================================
+  # Stage 5: Infrastructure Provisioning (Step 6.4)
+  # ==============================================================================
+  # This job runs Terraform commands to provision AWS resources.
+  # It is conditionally triggered or part of the main flow.
   terraform:
     name: 🏗️ Terraform Infrastructure
     runs-on: ubuntu-latest
@@ -240,7 +271,9 @@ jobs:
       working-directory: ./infra
       run: terraform apply -auto-approve -input=false tfplan
 
-  # Stage 6: Deploy Application (after Terraform and Docker)
+  # ==============================================================================
+  # Stage 6: Deployment (Step 6.5 & Step 5)
+  # ==============================================================================
   deploy-app:
     name: 🚀 Deploy Application
     runs-on: ubuntu-latest
@@ -258,6 +291,7 @@ jobs:
         python-version: '3.11'
         
     - name: 📦 Install Ansible & deps
+      # Installing Ansible for Step 4 (Configuration Management) integration
       run: |
         python -m pip install --upgrade pip
         python -m pip install ansible kubernetes openshift boto3
@@ -271,11 +305,13 @@ jobs:
         aws-region: ${{ env.AWS_REGION }}
         
     - name: ⚙️ Configure kubectl
+      # Connects to the EKS Cluster (Step 2 Outcome)
       run: |
         aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
         kubectl get nodes
         
     - name: 🎭 Deploy Application with Ansible
+      # Uses Ansible Playbook (Step 4 & 5) to apply Kubernetes Manifests
       working-directory: ./ansible
       env:
         RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
@@ -291,7 +327,10 @@ jobs:
         kubectl get svc -n ${{ env.NAMESPACE }}
         kubectl rollout status deployment/app -n ${{ env.NAMESPACE }} --timeout=300s
 
-  # Stage 6: Deploy Monitoring (after Docker build)
+  # ==============================================================================
+  # Stage 7: Monitoring (Step 7)
+  # ==============================================================================
+  # Goal: Monitor the system with Grafana & Prometheus.
   deploy-monitoring:
     name: 📊 Deploy Monitoring
     runs-on: ubuntu-latest
@@ -358,7 +397,9 @@ jobs:
         echo "- **Grafana:** http://$GRAFANA_URL (admin/Admin@12345)" >> $GITHUB_STEP_SUMMARY
       continue-on-error: true
 
-  # Stage 7: Post-Deployment Validation
+  # ==============================================================================
+  # Stage 8: Post-Deployment Smoke Tests (Step 6.6)
+  # ==============================================================================
   smoke-tests:
     name: 🧪 Smoke Tests
     runs-on: ubuntu-latest
@@ -446,4 +487,3 @@ jobs:
         echo "| Deploy App | ${{ needs.deploy-app.result }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Deploy Monitoring | ${{ needs.deploy-monitoring.result }} |" >> $GITHUB_STEP_SUMMARY
         echo "| Smoke Tests | ${{ needs.smoke-tests.result }} |" >> $GITHUB_STEP_SUMMARY
-
