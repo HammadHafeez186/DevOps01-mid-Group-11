@@ -252,8 +252,27 @@ router.get('/', asyncHandler(async(req, res) => {
         return
     }
 
+    // Generate signed URLs for S3 media
+    const articlesWithUrls = await Promise.all(articles.map(async(article) => {
+        const articlePlain = article.get({ plain: true })
+        const mediaWithUrls = await Promise.all((articlePlain.media || []).map(async(media) => {
+            if (media.type === 'video') {
+                return { ...media, embedUrl: buildEmbeddableUrl(media.externalUrl) }
+            }
+            
+            if (media.storagePath) {
+                const signedUrl = await getS3SignedUrl(media.storagePath)
+                return { ...media, url: signedUrl }
+            }
+            
+            return media
+        }))
+        
+        return { ...articlePlain, media: mediaWithUrls }
+    }))
+
     res.status(200).render('index', {
-        articles,
+        articles: articlesWithUrls,
         searchTerm,
         currentUserId: req.session && req.session.user ? req.session.user.id : null
     })
@@ -292,9 +311,33 @@ router.get('/mine', asyncHandler(async(req, res) => {
         return
     }
 
+    // Generate signed URLs for S3 media
+    const processArticles = async(articleList) => {
+        return await Promise.all(articleList.map(async(article) => {
+            const articlePlain = article.get({ plain: true })
+            const mediaWithUrls = await Promise.all((articlePlain.media || []).map(async(media) => {
+                if (media.type === 'video') {
+                    return { ...media, embedUrl: buildEmbeddableUrl(media.externalUrl) }
+                }
+                
+                if (media.storagePath) {
+                    const signedUrl = await getS3SignedUrl(media.storagePath)
+                    return { ...media, url: signedUrl }
+                }
+                
+                return media
+            }))
+            
+            return { ...articlePlain, media: mediaWithUrls }
+        }))
+    }
+
+    const privateArticlesWithUrls = await processArticles(privateArticles)
+    const publicArticlesWithUrls = await processArticles(publicArticles)
+
     res.status(200).render('mine', {
-        privateArticles,
-        publicArticles,
+        privateArticles: privateArticlesWithUrls,
+        publicArticles: publicArticlesWithUrls,
         searchTerm
     })
 }))
