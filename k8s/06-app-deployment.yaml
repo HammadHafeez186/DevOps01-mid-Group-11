@@ -1,0 +1,166 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app
+  namespace: devops-articles
+  labels:
+    app: devops-articles
+    component: app
+spec:
+  replicas: 1  # Now supports multiple replicas with S3 storage
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: devops-articles
+      component: app
+  template:
+    metadata:
+      labels:
+        app: devops-articles
+        component: app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: app-sa
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z $DB_HOST $DB_PORT; do echo "Waiting for Postgres at $DB_HOST:$DB_PORT..."; sleep 3; done']
+        env:
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_PORT
+      containers:
+      - name: app
+        # Using ECR image
+        image: 322467327252.dkr.ecr.us-east-1.amazonaws.com/devops-articles:latest
+        imagePullPolicy: Always
+        command: ["/bin/sh"]
+        args: ["-c", "npx sequelize-cli db:migrate --env production && (npx sequelize-cli db:seed:all --env production || echo 'Seeders completed') && node server.js"]
+        ports:
+        - containerPort: 3000
+          name: http
+          protocol: TCP
+        env:
+        # From ConfigMap
+        - name: NODE_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: NODE_ENV
+        - name: PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: PORT
+        - name: DB_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_HOST
+        - name: DB_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_PORT
+        - name: DB_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_NAME
+        - name: DB_USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_USERNAME
+        - name: DB_SSL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: DB_SSL
+        - name: AWS_REGION
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: AWS_REGION
+        - name: EMAIL_FROM
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: EMAIL_FROM
+        - name: APP_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: APP_URL
+        - name: COOKIE_SECURE
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: COOKIE_SECURE
+        - name: S3_UPLOADS_BUCKET
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: S3_UPLOADS_BUCKET
+        # From Secret
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_PASSWORD
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DATABASE_URL
+        - name: RESEND_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: RESEND_API_KEY
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: SESSION_SECRET
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 2
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 15"]  # Graceful shutdown delay
