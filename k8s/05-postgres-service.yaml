@@ -1,3 +1,14 @@
+# ==============================================================================
+# Step 5: Kubernetes Deployment (Database Service)
+# ==============================================================================
+# Goal: Deploy the containerized app to Kubernetes
+# Requirement: App pod communicates with DB (service)
+#
+# This Service exposes the PostgreSQL StatefulSet to other pods in the namespace.
+# It uses a 'Headless Service' (clusterIP: None) which allows direct access 
+# to the specific pod IP, which is preferred for StatefulSets.
+# ==============================================================================
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,11 +18,18 @@ metadata:
     app: devops-articles
     component: database
 spec:
+  # ClusterIP: Exposes the service on a cluster-internal IP
   type: ClusterIP
-  clusterIP: None  # Headless service for StatefulSet
+  
+  # Headless Service: Important for StatefulSets
+  clusterIP: None
+  
+  # Selector: Matches pods with these labels
   selector:
     app: devops-articles
     component: database
+  
+  # Ports: Mapping default PostgreSQL port
   ports:
   - port: 5432
     targetPort: 5432
