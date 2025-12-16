@@ -1,3 +1,16 @@
+# ==============================================================================
+# Step 5: Kubernetes Deployment (Database Layer)
+# ==============================================================================
+# Goal: Deploy the containerized app to Kubernetes
+# Requirements:
+# - Persistent storage for DB
+# - No hardcoded secrets
+#
+# We use a StatefulSet instead of a Deployment for the Database.
+# StatefulSets provide stable network IDs (hostname) and stable persistent storage.
+# This ensures data integrity and proper ordering for database operations.
+# ==============================================================================
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -25,6 +38,9 @@ spec:
         ports:
         - containerPort: 5432
           name: postgres
+        
+        # Environment Variables
+        # All sensitive data is injected via Kubernetes Secrets (No hardcoded secrets)
         env:
         - name: POSTGRES_USER
           valueFrom:
@@ -41,14 +57,23 @@ spec:
             configMapKeyRef:
               name: app-config
               key: DB_NAME
+        
+        # Authentication Methods
         - name: POSTGRES_HOST_AUTH_METHOD
           value: "md5"
         - name: POSTGRES_INITDB_ARGS
           value: "--auth-host=md5"
+        
+        # Volume Mounts
+        # Mounting the PersistentVolumeClaim to the standard PostgreSQL data directory
+        # This satisfies "Persistent storage for DB"
         volumeMounts:
         - name: postgres-storage
           mountPath: /var/lib/postgresql/data
           subPath: postgres
+        
+        # Resource Limits
+        # Ensuring the DB has guaranteed resources but is capped to prevent node starvation
         resources:
           requests:
             memory: "256Mi"
@@ -56,6 +81,9 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+            
+        # Health Checks (Liveness and Readiness Probes)
+        # Ensures K8s automatically restarts the pod if the DB is unresponsive
         livenessProbe:
           exec:
             command:
@@ -72,6 +100,9 @@ spec:
             - pg_isready -U postgres
           initialDelaySeconds: 5
           periodSeconds: 5
+          
+      # Volumes
+      # Binding to the PVC created in k8s/03-postgres-storage.yaml
       volumes:
       - name: postgres-storage
         persistentVolumeClaim:
