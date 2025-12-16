@@ -1,3 +1,14 @@
+# ==============================================================================
+# Step 5: Kubernetes Deployment (Configuration Management)
+# ==============================================================================
+# Goal: Deploy the containerized app to Kubernetes
+# Requirement: configmap.yaml or secret.yaml
+#
+# This ConfigMap decrypts non-sensitive configuration data for the application.
+# It aligns with the "12 - Factor App" methodology by externalizing config.
+# App pods will mount these values as environment variables.
+# ==============================================================================
+
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,17 +17,35 @@ metadata:
   labels:
     app: devops-articles
 data:
+  # Environment definition
   NODE_ENV: "production"
+  
+  # Application Port (matched with containerPort in deployment.yaml)
   PORT: "3000"
+  
+  # Database Connection Details (Service Discovery)
+  # 'postgres-service' resolves to the ClusterIP of the database service
+  # This satisfies "App pod communicates with DB (service)" requirement.
   DB_HOST: "postgres-service"
   DB_PORT: "5432"
   DB_NAME: "devops_db"
   DB_USERNAME: "postgres"
+  
+  # SSL Configuration for RDS/Self-hosted
   DB_SSL: "false"
+  
+  # Application Settings
   EMAIL_FROM: "DevOps Articles <noreply@tabeebemail.me>"
+  
+  # Public URL for the application (Updated by CI/CD pipeline or Manual LB provisioning)
   APP_URL: "http://aeab3ca7112b2462480d0ca854b12c1e-667800433.us-east-1.elb.amazonaws.com"
-  COOKIE_SECURE: "false"
+  
+  # Security Settings
+  COOKIE_SECURE: "false" # Set to true if using HTTPS/TLS
+  
+  # AWS Configuration (Provider integration)
   AWS_REGION: "us-east-1"
   S3_UPLOADS_BUCKET: "devops-articles-uploads"
-  # Allow self-signed SSL certificates from RDS
+  
+  # Bypass strict SSL checks (Useful for self-signed certs in internal networks or RDS)
   NODE_TLS_REJECT_UNAUTHORIZED: "0"
