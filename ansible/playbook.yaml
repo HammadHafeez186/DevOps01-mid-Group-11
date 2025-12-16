@@ -1,0 +1,323 @@
+---
+- name: Deploy DevOps Articles Application to Kubernetes
+  hosts: eks_cluster
+  gather_facts: yes
+  
+  vars:
+    app_name: devops-articles
+    k8s_namespace: devops-articles
+    k8s_manifests_dir: "../k8s"
+    ecr_registry: "322467327252.dkr.ecr.us-east-1.amazonaws.com"
+    image_name: "devops-articles"
+    image_tag: "latest"
+    aws_region: "us-east-1"
+    cluster_name: "devops-articles-eks-cluster"
+    s3_bucket_name: "devops-articles-uploads"
+    # Application secrets - MUST be set via environment variables or GitHub Secrets
+    # No fallback values to prevent accidental exposure
+    resend_api_key: "{{ lookup('env', 'RESEND_API_KEY') }}"
+    session_secret: "{{ lookup('env', 'SESSION_SECRET') }}"
+    
+  tasks:
+    - name: Check if kubectl is installed
+      command: kubectl version --client
+      register: kubectl_check
+      changed_when: false
+      
+    - name: Display kubectl version
+      debug:
+        msg: "kubectl version: {{ kubectl_check.stdout_lines[0] }}"
+        
+    - name: Check AWS CLI installation
+      command: aws --version
+      register: aws_check
+      changed_when: false
+      
+    - name: Display AWS CLI version
+      debug:
+        msg: "AWS CLI version: {{ aws_check.stdout }}"
+        
+    - name: Configure kubectl for EKS cluster
+      shell: |
+        aws eks update-kubeconfig --region {{ aws_region }} --name {{ cluster_name }}
+      changed_when: false
+      
+    - name: Create namespace if it doesn't exist
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ k8s_namespace }}"
+            
+    - name: Get RDS endpoint from Terraform output
+      shell: |
+        cd ../infra
+        terraform output -raw rds_address 2>/dev/null || echo ""
+      register: rds_endpoint
+      changed_when: false
+      failed_when: false
+      
+    - name: Get RDS password from AWS Secrets Manager
+      shell: |
+        SECRET_NAME=$(aws secretsmanager list-secrets --region {{ aws_region }} --query "SecretList[?contains(Name, 'devops-articles-db-password')].Name | sort(@) | [-1]" --output text)
+        if [ -z "$SECRET_NAME" ] || [ "$SECRET_NAME" == "None" ]; then
+          echo ""
+        else
+          aws secretsmanager get-secret-value --region {{ aws_region }} --secret-id "$SECRET_NAME" --query 'SecretString' --output text 2>/dev/null | jq -r '.password' 2>/dev/null || echo ""
+        fi
+      register: rds_password
+      changed_when: false
+      failed_when: false
+      no_log: true
+
+    - name: Check if RDS credentials were retrieved
+      set_fact:
+        has_rds_credentials: "{{ rds_endpoint.stdout != '' and rds_password.stdout != '' }}"
+      
+    - name: Display database configuration
+      debug:
+        msg: "{{ 'Using RDS at ' + rds_endpoint.stdout if has_rds_credentials else 'Using in-cluster PostgreSQL (RDS not found)' }}"
+
+    - name: Get LoadBalancer URL for APP_URL
+      kubernetes.core.k8s_info:
+        kind: Service
+        name: app-service
+        namespace: "{{ k8s_namespace }}"
+      register: app_service
+      failed_when: false
+      
+    - name: Set APP_URL from LoadBalancer or default
+      set_fact:
+        app_url: "{{ 'http://' + app_service.resources[0].status.loadBalancer.ingress[0].hostname if (app_service.resources | length > 0 and app_service.resources[0].status.loadBalancer.ingress is defined) else 'http://localhost:3000' }}"
+
+    - name: URL encode RDS password for DATABASE_URL
+      set_fact:
+        encoded_password: "{{ rds_password.stdout | urlencode }}"
+      no_log: true
+      when: has_rds_credentials
+
+    - name: Create/Update ConfigMap with RDS and S3 config
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: app-config
+            namespace: "{{ k8s_namespace }}"
+          data:
+            NODE_ENV: "production"
+            PORT: "3000"
+            DB_HOST: "{{ rds_endpoint.stdout }}"
+            DB_PORT: "5432"
+            DB_NAME: "devops_db"
+            DB_USERNAME: "postgres"
+            DB_SSL: "true"
+            AWS_REGION: "{{ aws_region }}"
+            S3_UPLOADS_BUCKET: "{{ s3_bucket_name }}"
+            EMAIL_FROM: "DevOps Articles <noreply@tabeebemail.me>"
+            APP_URL: "{{ app_url }}"
+            COOKIE_SECURE: "false"
+            NODE_TLS_REJECT_UNAUTHORIZED: "0"
+      when: has_rds_credentials
+
+    - name: Create/Update ConfigMap with in-cluster PostgreSQL and S3 config
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: app-config
+            namespace: "{{ k8s_namespace }}"
+          data:
+            NODE_ENV: "production"
+            PORT: "3000"
+            DB_HOST: "postgres-service.{{ k8s_namespace }}.svc.cluster.local"
+            DB_PORT: "5432"
+            DB_NAME: "devops_db"
+            DB_USERNAME: "postgres"
+            DB_SSL: "false"
+            AWS_REGION: "{{ aws_region }}"
+            S3_UPLOADS_BUCKET: "{{ s3_bucket_name }}"
+            EMAIL_FROM: "DevOps Articles <noreply@tabeebemail.me>"
+            APP_URL: "{{ app_url }}"
+            COOKIE_SECURE: "false"
+      when: not has_rds_credentials
+      
+    - name: Create/Update application secrets with RDS credentials
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: app-secrets
+            namespace: "{{ k8s_namespace }}"
+            annotations:
+              updated-at: "{{ ansible_date_time.iso8601 }}"
+              rds-endpoint: "{{ rds_endpoint.stdout }}"
+              database-type: "rds"
+          type: Opaque
+          stringData:
+            DB_PASSWORD: "{{ rds_password.stdout }}"
+            DATABASE_URL: "postgresql://postgres:{{ encoded_password }}@{{ rds_endpoint.stdout }}:5432/devops_db?sslmode=require"
+            SESSION_SECRET: "{{ session_secret }}"
+            RESEND_API_KEY: "{{ resend_api_key }}"
+      no_log: true
+      register: secret_update_result
+      when: has_rds_credentials
+
+    - name: Get existing in-cluster PostgreSQL password
+      kubernetes.core.k8s_info:
+        kind: Secret
+        name: app-secrets
+        namespace: "{{ k8s_namespace }}"
+      register: existing_secret
+      when: not has_rds_credentials
+
+    - name: Extract existing DB password or use default
+      set_fact:
+        in_cluster_db_password: "{{ existing_secret.resources[0].data.DB_PASSWORD | b64decode if (existing_secret.resources | length > 0) else 'OEat5uhdG$GU{zPs' }}"
+      when: not has_rds_credentials
+      no_log: true
+
+    - name: URL encode in-cluster DB password
+      set_fact:
+        encoded_in_cluster_password: "{{ in_cluster_db_password | urlencode }}"
+      when: not has_rds_credentials
+      no_log: true
+
+    - name: Create/Update application secrets with in-cluster PostgreSQL credentials
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: app-secrets
+            namespace: "{{ k8s_namespace }}"
+            annotations:
+              updated-at: "{{ ansible_date_time.iso8601 }}"
+              database-type: "in-cluster"
+          type: Opaque
+          stringData:
+            DB_PASSWORD: "{{ in_cluster_db_password }}"
+            DATABASE_URL: "postgresql://postgres:{{ encoded_in_cluster_password }}@postgres-service.{{ k8s_namespace }}.svc.cluster.local:5432/devops_db"
+            SESSION_SECRET: "{{ session_secret }}"
+            RESEND_API_KEY: "{{ resend_api_key }}"
+      no_log: true
+      register: secret_update_result
+      when: not has_rds_credentials
+
+    - name: Apply PostgreSQL Storage (EBS PVC) - only if RDS not found
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/03-postgres-storage.yaml"
+        namespace: "{{ k8s_namespace }}"
+      when: not has_rds_credentials
+        
+    - name: Apply PostgreSQL StatefulSet - only if RDS not found
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/04-postgres-statefulset.yaml"
+        namespace: "{{ k8s_namespace }}"
+      when: not has_rds_credentials
+        
+    - name: Apply PostgreSQL Service - only if RDS not found
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/05-postgres-service.yaml"
+        namespace: "{{ k8s_namespace }}"
+      when: not has_rds_credentials
+        
+    - name: Wait for PostgreSQL to be ready - only if RDS not found
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ k8s_namespace }}"
+        label_selectors:
+          - app=postgres
+      register: postgres_pod
+      until: postgres_pod.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+      retries: 5
+      delay: 10
+      when: not has_rds_credentials
+      failed_when: false
+
+    - name: Apply ServiceAccount (for S3 IRSA)
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/09-serviceaccount.yaml"
+        namespace: "{{ k8s_namespace }}"
+      
+    - name: Apply Application Deployment
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/06-app-deployment.yaml"
+        namespace: "{{ k8s_namespace }}"
+        
+    - name: Apply Application Service
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/07-app-service.yaml"
+        namespace: "{{ k8s_namespace }}"
+        
+    - name: Apply HPA (Horizontal Pod Autoscaler)
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ k8s_manifests_dir }}/08-hpa.yaml"
+        namespace: "{{ k8s_namespace }}"
+      ignore_errors: yes
+      
+    - name: Wait for application pods to be ready
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ k8s_namespace }}"
+        label_selectors:
+          - app={{ app_name }}
+      register: pod_list
+      until: pod_list.resources | selectattr('status.phase', 'equalto', 'Running') | list | length > 0
+      retries: 30
+      delay: 10
+      
+    - name: Get deployment status
+      kubernetes.core.k8s_info:
+        kind: Deployment
+        name: app
+        namespace: "{{ k8s_namespace }}"
+      register: deployment_status
+      
+    - name: Display deployment replicas
+      debug:
+        msg: "Deployment ready replicas: {{ deployment_status.resources[0].status.readyReplicas | default(0) }}/{{ deployment_status.resources[0].spec.replicas }}"
+        
+    - name: Get service information
+      kubernetes.core.k8s_info:
+        kind: Service
+        name: app-service
+        namespace: "{{ k8s_namespace }}"
+      register: service_info
+      
+    - name: Display LoadBalancer URLs
+      debug:
+        msg: 
+          - "Application URL: http://{{ service_info.resources[0].status.loadBalancer.ingress[0].hostname | default('pending...') }}"
+          - "Access your application at the URL above"
+          - "Grafana: Check monitoring namespace for Grafana dashboard"
+          - "Prometheus: Check monitoring namespace for metrics"
+      when: service_info.resources[0].spec.type == 'LoadBalancer'
+      
+    - name: Get all pods
+      kubernetes.core.k8s_info:
+        kind: Pod
+        namespace: "{{ k8s_namespace }}"
+      register: all_pods
+      
+    - name: Display pod status
+      debug:
+        msg: "Pod {{ item.metadata.name }} is {{ item.status.phase }}"
+      loop: "{{ all_pods.resources }}"
+      loop_control:
+        label: "{{ item.metadata.name }}"
