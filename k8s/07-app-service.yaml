@@ -1,3 +1,13 @@
+# ==============================================================================
+# Step 5: Kubernetes Deployment (Application Service)
+# ==============================================================================
+# Goal: Deploy the containerized app to Kubernetes
+# Requirement: service.yaml
+#
+# This Service exposes the application to the internet using an AWS LoadBalancer.
+# It acts as the entry point for external traffic forwarding to the pods.
+# ==============================================================================
+
 apiVersion: v1
 kind: Service
 metadata:
@@ -7,16 +17,23 @@ metadata:
     app: devops-articles
     component: app
   annotations:
+    # AWS Load Balancer Controller Integration
+    # 'nlb' = Network Load Balancer (High performance, static IP support)
     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
     service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
 spec:
+  # LoadBalancer creates an external IP/DNS in AWS
   type: LoadBalancer
+  
+  # preserve client source IP
   externalTrafficPolicy: Cluster
+  
   selector:
     app: devops-articles
     component: app
+  
   ports:
-  - port: 80
-    targetPort: 3000
+  - port: 80           # Exposed port
+    targetPort: 3000   # Container port
     protocol: TCP
     name: http
