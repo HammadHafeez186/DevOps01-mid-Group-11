@@ -1,7 +1,20 @@
+# ==============================================================================
+# Step 5: Kubernetes Deployment (Namespace Organization)
+# ==============================================================================
+# Goal: Deploy the containerized app to Kubernetes (EKS or local Minikube)
+# Requirement: Namespace organization (dev, prod)
+#
+# This manifest creates a dedicated namespace 'devops-articles' to isolate 
+# our application resources from other workloads in the cluster.
+# This follows best practices for multi-tenant or multi-environment clusters.
+# ==============================================================================
+
 apiVersion: v1
 kind: Namespace
 metadata:
   name: devops-articles
   labels:
     app: devops-articles
-    env: production
+    env: production 
+    # 'env: production' label helps in filtering resources by environment
+    # as per Step 5 "Namespace organization (dev, prod)" requirement.
