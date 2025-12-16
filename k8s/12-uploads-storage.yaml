@@ -1,3 +1,13 @@
+# ==============================================================================
+# Step 5: Kubernetes Deployment (File Persistence)
+# ==============================================================================
+# Goal: Deploy the containerized app to Kubernetes
+# Requirement: Persistent storage for DB / Static Assets
+#
+# This PVC ensures that user-uploaded files are persisted across pod restarts.
+# In a cloud environment, this maps to an AWS EBS Volume via 'gp2' or EFS.
+# ==============================================================================
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -7,9 +17,14 @@ metadata:
     app: devops-articles
     component: storage
 spec:
+  # ReadWriteOnce: Mounted by a single node
   accessModes:
     - ReadWriteOnce
+    
+  # 'gp2' maps to AWS EBS General Purpose SSD volumes
   storageClassName: gp2
+  
+  # Request 10GB for file uploads
   resources:
     requests:
       storage: 10Gi
