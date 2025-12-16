@@ -1,3 +1,17 @@
+# ==============================================================================
+# Step 5: Kubernetes Deployment (Application Deployment)
+# ==============================================================================
+# Goal: Deploy the containerized app to Kubernetes
+# Requirements:
+# - deployment.yaml
+# - App pod communicates with DB (service)
+# - No hardcoded secrets
+#
+# This Manifest defines the stateless application deployment.
+# It includes InitContainers for service dependencies, Health Checks,
+# and LifeCycle hooks for zero-downtime deployments.
+# ==============================================================================
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -7,27 +21,39 @@ metadata:
     app: devops-articles
     component: app
 spec:
-  replicas: 1  # Now supports multiple replicas with S3 storage
+  # Replicas are managed by HPA (k8s/08-hpa.yaml)
+  replicas: 1
+    
+  # Rolling Update Strategy ensures zero downtime during new version rollouts
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1
-      maxUnavailable: 0
+      maxSurge: 1        # Allow 1 extra pod during update
+      maxUnavailable: 0  # Ensure all desired pods are available
+      
   selector:
     matchLabels:
       app: devops-articles
       component: app
+      
   template:
     metadata:
       labels:
         app: devops-articles
         component: app
       annotations:
+        # Prometheus Scrape Annotations for Monitoring (Step 7)
         prometheus.io/scrape: "true"
         prometheus.io/port: "3000"
         prometheus.io/path: "/metrics"
+        
     spec:
+      # IAM Role integration for AWS Access
       serviceAccountName: app-sa
+      
+      # Init Container: Dependency Check
+      # Ensures the Application Pod only starts AFTER the Database is reachable.
+      # Solves the "App pod communicates with DB" timing issue associated with distributed systems.
       initContainers:
       - name: wait-for-postgres
         image: busybox:1.36
@@ -43,19 +69,27 @@ spec:
             configMapKeyRef:
               name: app-config
               key: DB_PORT
+              
       containers:
       - name: app
-        # Using ECR image
+        # Docker Image from ECR (Step 6 CI/CD pushes here)
         image: 322467327252.dkr.ecr.us-east-1.amazonaws.com/devops-articles:latest
         imagePullPolicy: Always
+        
+        # Start command: Auto-run migrations on startup to keep schema in sync
         command: ["/bin/sh"]
         args: ["-c", "npx sequelize-cli db:migrate --env production && (npx sequelize-cli db:seed:all --env production || echo 'Seeders completed') && node server.js"]
+        
         ports:
         - containerPort: 3000
           name: http
           protocol: TCP
+          
+        # Environment Configuration
+        # Combination of non-sensitive ConfigMaps and sensitive Secrets
+        # "No hardcoded secrets" requirement fulfilled here.
         env:
-        # From ConfigMap
+        # --- ConfigMap Values ---
         - name: NODE_ENV
           valueFrom:
             configMapKeyRef:
@@ -116,7 +150,8 @@ spec:
             configMapKeyRef:
               name: app-config
               key: S3_UPLOADS_BUCKET
-        # From Secret
+              
+        # --- Secret Values (Encrypted) ---
         - name: DB_PASSWORD
           valueFrom:
             secretKeyRef:
@@ -137,6 +172,8 @@ spec:
             secretKeyRef:
               name: app-secrets
               key: SESSION_SECRET
+              
+        # Resource Requests/Limits (Best Practice for Scheduling)
         resources:
           requests:
             memory: "256Mi"
@@ -144,6 +181,8 @@ spec:
           limits:
             memory: "512Mi"
             cpu: "500m"
+            
+        # Liveness Probe: Kills the pod if this fails (Deadlocks/Crashes)
         livenessProbe:
           httpGet:
             path: /
@@ -152,6 +191,8 @@ spec:
           periodSeconds: 10
           timeoutSeconds: 5
           failureThreshold: 3
+          
+        # Readiness Probe: Removes pod from Service LB if this fails (Overload/Startup)
         readinessProbe:
           httpGet:
             path: /
@@ -160,7 +201,9 @@ spec:
           periodSeconds: 5
           timeoutSeconds: 3
           failureThreshold: 2
+          
+        # Graceful Shutdown
         lifecycle:
           preStop:
             exec:
-              command: ["/bin/sh", "-c", "sleep 15"]  # Graceful shutdown delay
+              command: ["/bin/sh", "-c", "sleep 15"]  # Allow LB to drain connections
