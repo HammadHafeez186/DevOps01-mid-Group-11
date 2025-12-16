@@ -120,7 +120,7 @@
               <article class="article-card h-100">
                 <% const privateHero = (article.media || []).find(item => item.type === 'image') %>
                 <% if (privateHero) { %>
-                  <img src="/<%= privateHero.storagePath %>" class="w-100" style="height: 180px; object-fit: cover;" alt="<%= article.title || 'Article image' %>">
+                  <img src="<%= privateHero.url || ('/' + privateHero.storagePath) %>" class="w-100" style="height: 180px; object-fit: cover;" alt="<%= article.title || 'Article image' %>">
                 <% } %>
                 <div class="article-header d-flex justify-content-between align-items-start">
                   <div>
@@ -219,7 +219,7 @@
               <article class="article-card h-100">
                 <% const publicHero = (article.media || []).find(item => item.type === 'image') %>
                 <% if (publicHero) { %>
-                  <img src="/<%= publicHero.storagePath %>" class="w-100" style="height: 180px; object-fit: cover;" alt="<%= article.title || 'Article image' %>">
+                  <img src="<%= publicHero.url || ('/' + publicHero.storagePath) %>" class="w-100" style="height: 180px; object-fit: cover;" alt="<%= article.title || 'Article image' %>">
                 <% } %>
                 <div class="article-header d-flex justify-content-between align-items-start">
                   <div>
