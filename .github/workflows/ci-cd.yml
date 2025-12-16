@@ -15,7 +15,7 @@
 # - Step 2: Infrastructure Provisioning with Terraform (Automated)
 # ==============================================================================
 
-name: DevOps CI/CD Pipeline // Step 6
+name: DevOps CI/CD Pipeline # Step 6
 
 on:
   push:
