@@ -1,0 +1,16 @@
+# Railway Configuration
+# This file ensures Railway uses the correct settings
+
+# Railway automatically provides these environment variables:
+# DATABASE_URL - from PostgreSQL service (REQUIRED)
+# NODE_ENV=production 
+# PORT - automatically assigned
+
+# DO NOT manually set these in Railway Variables:
+# DB_USERNAME, DB_PASSWORD, DB_NAME, DB_HOST, DB_PORT
+
+# Railway setup steps:
+# 1. Add PostgreSQL service to project
+# 2. Railway automatically creates DATABASE_URL
+# 3. Deploy web service
+# 4. App uses DATABASE_URL via config/config.js production settings
