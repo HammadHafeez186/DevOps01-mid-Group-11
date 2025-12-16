@@ -1,3 +1,13 @@
+# ==============================================================================
+# Step 5: Kubernetes Deployment (Persistent Storage)
+# ==============================================================================
+# Goal: Deploy the containerized app to Kubernetes
+# Requirement: Persistent storage for DB
+#
+# This PersistentVolumeClaim (PVC) requests storage for the PostgreSQL database.
+# It ensures that data remains intact even if the Pod crashes or restarts.
+# ==============================================================================
+
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -7,9 +17,16 @@ metadata:
     app: devops-articles
     component: database
 spec:
+  # ReadWriteOnce: Can be mounted by a single node (standard for databases)
   accessModes:
     - ReadWriteOnce
+  
+  # Uses the 'gp2' StorageClass (Standard AWS EBS volumes)
+  # This dynamically provisions an EBS volume in AWS when using EKS.
+  # "Provision infrastructure... RDS/PostgreSQL or S3 bucket for persistence"
   storageClassName: gp2
+  
+  # Request 10GB of storage
   resources:
     requests:
       storage: 10Gi
