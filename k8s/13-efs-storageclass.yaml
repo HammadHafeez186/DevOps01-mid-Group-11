@@ -1,9 +1,25 @@
+# ==============================================================================
+# Step 5: Kubernetes Deployment (Shared Storage Class)
+# ==============================================================================
+# Goal: Provision infrastructure using Terraform on AWS
+# Requirement: Persistent storage
+#
+# Defines a StorageClass for AWS EFS (Elastic File System).
+# Unlike EBS (gp2), EFS can be mounted by multiple pods across different Availability Zones (ReadWriteMany).
+# This is crucial for high-availability scaling of the application layer.
+# ==============================================================================
+
 kind: StorageClass
 apiVersion: storage.k8s.io/v1
 metadata:
   name: efs-sc
 provisioner: efs.csi.aws.com
 parameters:
+  # Dynamic Provisioning Mode: Access Point
   provisioningMode: efs-ap
+  
+  # File System ID (Outcome of "Step 2: Infrastructure Provisioning with Terraform")
   fileSystemId: fs-03ed8feee4a0e17c2
+  
+  # Directory Permissions
   directoryPerms: "700"
