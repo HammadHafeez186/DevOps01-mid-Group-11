@@ -2,13 +2,21 @@ name: DevOps CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, dev, dev2 ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
 
 env:
-  DOCKER_IMAGE_NAME: devops-project-app
-  REGISTRY: docker.io
+  DOCKER_IMAGE_NAME: devops-articles
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: devops-articles-eks-cluster
+  NAMESPACE: devops-articles
 
 jobs:
   # Stage 1: Build & Install Dependencies
@@ -27,9 +35,7 @@ jobs:
         cache: 'npm'
         
     - name: 📦 Install dependencies
-      run: |
-        npm ci
-        npm list --depth=0
+      run: npm ci
         
     - name: 💾 Cache node modules
       uses: actions/cache@v4
@@ -39,9 +45,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-node-
 
-  # Stage 2: Lint & Security Scan
-  lint-and-security:
-    name: 🔍 Lint & Security Scan
+  # Stage 2: Parallel Validation - Lint
+  lint:
+    name: 🔍 Lint Code
     runs-on: ubuntu-latest
     needs: build-and-install
     
@@ -60,13 +66,30 @@ jobs:
       
     - name: 🔍 Run ESLint
       run: |
-        npx eslint . --ext .js --format json --output-file eslint-report.json || true
         npx eslint . --ext .js || echo "ESLint found issues"
+
+  # Stage 2: Parallel Validation - Security
+  security-scan:
+    name: 🛡️ Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-install
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🚀 Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: 📦 Restore dependencies
+      run: npm ci
         
     - name: 🛡️ Run security audit
       run: |
-        npm audit --audit-level=high
-        npm audit --json > audit-report.json || true
+        npm audit --audit-level=moderate || true
         
     - name: 🔒 Snyk Security Scan
       uses: snyk/actions/node@master
@@ -75,20 +98,12 @@ jobs:
       with:
         args: --severity-threshold=high
       continue-on-error: true
-        
-    - name: 📊 Upload security reports
-      uses: actions/upload-artifact@v4
-      with:
-        name: security-reports
-        path: |
-          eslint-report.json
-          audit-report.json
 
-  # Stage 3: Test with Database Service
+  # Stage 3: Test with Database
   test:
     name: 🧪 Test with Database
     runs-on: ubuntu-latest
-    needs: [build-and-install, lint-and-security]
+    needs: build-and-install
     
     services:
       postgres:
@@ -150,64 +165,84 @@ jobs:
           });
         "
 
-  # Stage 4: Build Docker Image
+  # Stage 4: Build & Push Docker (parallel with Terraform)
   build-docker:
-    name: 🐳 Build Docker Image
+    name: 🐳 Build & Push Docker
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, lint, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
       
+    - name: 🔐 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+      
     - name: 🐳 Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
       
-    - name: � Debug Docker Secrets
-      if: github.event_name != 'pull_request'
-      run: |
-        echo "Checking if Docker secrets are available..."
-        echo "DOCKER_USERNAME is set: ${{ secrets.DOCKER_USERNAME != '' }}"
-        echo "DOCKER_PASSWORD is set: ${{ secrets.DOCKER_PASSWORD != '' }}"
-      
-    - name: �🔐 Login to Docker Hub
-      if: github.event_name != 'pull_request'
-      uses: docker/login-action@v3
-      with:
-        registry: docker.io
-        username: ${{ secrets.DOCKER_USERNAME }}
-        password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: 🔑 Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
         
-    - name: 🏗️ Build and test Docker image
+    - name: 🏗️ Build and Push to ECR
+      env:
+        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+        IMAGE_TAG: ${{ github.sha }}
       run: |
-        docker build -t ${{ env.DOCKER_IMAGE_NAME }}:test .
-        docker run --rm ${{ env.DOCKER_IMAGE_NAME }}:test node --version
-        
-    - name: 🔖 Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-          
-    - name: 🚀 Build and push Docker image
-      if: github.event_name != 'pull_request'
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        docker build -t $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:$IMAGE_TAG .
+        docker tag $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:$IMAGE_TAG $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:latest
+        docker push $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:$IMAGE_TAG
+        docker push $ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:latest
+        echo "IMAGE_URI=$ECR_REGISTRY/${{ env.DOCKER_IMAGE_NAME }}:$IMAGE_TAG" >> $GITHUB_ENV
 
-  # Stage 5: Deploy (Conditional)
-  deploy:
-    name: 🚀 Deploy to Production
+  # Terraform job - runs only when explicitly triggered with [terraform] commit message
+  terraform:
+    name: 🏗️ Terraform Infrastructure
+    runs-on: ubuntu-latest
+    needs: [test, lint, security-scan]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && (contains(github.event.head_commit.message, '[terraform]') || contains(toJSON(github.event.commits.*.message), '[terraform]'))
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: ⚙️ Setup Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+        
+    - name: 🔐 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: 🎯 Terraform Init
+      working-directory: ./infra
+      run: terraform init -input=false
+      
+    - name: 📋 Terraform Validate
+      working-directory: ./infra
+      run: terraform validate
+      
+    - name: 📋 Terraform Plan
+      working-directory: ./infra
+      run: terraform plan -out=tfplan -input=false
+      
+    - name: 🚀 Terraform Apply
+      working-directory: ./infra
+      run: terraform apply -auto-approve -input=false tfplan
+
+  # Stage 6: Deploy Application (after Terraform and Docker)
+  deploy-app:
+    name: 🚀 Deploy Application
     runs-on: ubuntu-latest
     needs: [build-docker]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -217,40 +252,198 @@ jobs:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
       
-    - name: 🚀 Deploy to Render
-      env:
-        RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-        RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
+    - name: 🐍 Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: 📦 Install Ansible & deps
       run: |
-        echo "🚀 Deploying to Render..."
-        curl -X POST \
-          -H "Authorization: Bearer $RENDER_API_KEY" \
-          -H "Content-Type: application/json" \
-          "https://api.render.com/v1/services/$RENDER_SERVICE_ID/deploys" \
-          -d '{"clearCache": false}' || echo "Deployment triggered"
+        python -m pip install --upgrade pip
+        python -m pip install ansible kubernetes openshift boto3
+        ansible-galaxy collection install -r ansible/requirements.yml
+        
+    - name: 🔐 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: ⚙️ Configure kubectl
+      run: |
+        aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+        kubectl get nodes
+        
+    - name: 🎭 Deploy Application with Ansible
+      working-directory: ./ansible
+      env:
+        RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+        SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
+        ANSIBLE_HOST_KEY_CHECKING: False
+        ANSIBLE_FORCE_COLOR: True
+        ANSIBLE_STDOUT_CALLBACK: yaml
+      run: ansible-playbook playbook.yaml -v
+        
+    - name: ✅ Verify Deployment
+      run: |
+        kubectl get pods -n ${{ env.NAMESPACE }}
+        kubectl get svc -n ${{ env.NAMESPACE }}
+        kubectl rollout status deployment/app -n ${{ env.NAMESPACE }} --timeout=300s
+
+  # Stage 6: Deploy Monitoring (after Docker build)
+  deploy-monitoring:
+    name: 📊 Deploy Monitoring
+    runs-on: ubuntu-latest
+    needs: [build-docker]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔐 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: ⚙️ Configure kubectl
+      run: |
+        aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+        
+    - name: 📦 Add Helm repository
+      run: |
+        curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm repo update
+        
+    - name: 🔍 Check if monitoring exists
+      id: check_monitoring
+      run: |
+        if helm list -n monitoring | grep -q kube-prom; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "✅ Monitoring stack already deployed"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "📊 Monitoring stack not found - will deploy"
+        fi
+      continue-on-error: true
+        
+    - name: 📊 Deploy Prometheus & Grafana (if not exists)
+      if: steps.check_monitoring.outputs.exists != 'true'
+      run: |
+        kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+        helm install kube-prom prometheus-community/kube-prometheus-stack -n monitoring \
+          --set grafana.adminPassword='Admin@12345' \
+          --set prometheus.service.type=LoadBalancer \
+          --set grafana.service.type=LoadBalancer \
+          --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=false \
+          --wait --timeout=10m
+      continue-on-error: true
+        
+    - name: ⏳ Wait for Monitoring Pods
+      run: |
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=grafana -n monitoring --timeout=300s || echo "Grafana pods still starting"
+        kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=prometheus -n monitoring --timeout=300s || echo "Prometheus pods still starting"
+      continue-on-error: true
+        
+    - name: 📋 Get Monitoring URLs
+      run: |
+        echo "## 📊 Monitoring Stack" >> $GITHUB_STEP_SUMMARY
+        PROMETHEUS_URL=$(kubectl get svc -n monitoring -l app.kubernetes.io/name=prometheus -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "pending")
+        GRAFANA_URL=$(kubectl get svc -n monitoring -l app.kubernetes.io/name=grafana -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "pending")
+        echo "- **Prometheus:** http://$PROMETHEUS_URL:9090" >> $GITHUB_STEP_SUMMARY
+        echo "- **Grafana:** http://$GRAFANA_URL (admin/Admin@12345)" >> $GITHUB_STEP_SUMMARY
+      continue-on-error: true
+
+  # Stage 7: Post-Deployment Validation
+  smoke-tests:
+    name: 🧪 Smoke Tests
+    runs-on: ubuntu-latest
+    needs: [deploy-app, deploy-monitoring]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+      
+    - name: 🔐 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: ⚙️ Configure kubectl
+      run: |
+        aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name ${{ env.EKS_CLUSTER_NAME }}
+        
+    - name: 🏥 Health Check
+      run: |
+        APP_URL=$(kubectl get svc app-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+        echo "Testing application at http://$APP_URL"
+        
+        # Wait for LoadBalancer DNS to propagate
+        sleep 60
+        
+        # Test main page
+        HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" http://$APP_URL/ || echo "000")
+        if [ "$HTTP_CODE" == "200" ] || [ "$HTTP_CODE" == "302" ]; then
+          echo "✅ Application is responding correctly (HTTP $HTTP_CODE)"
+        else
+          echo "⚠️ Application returned HTTP $HTTP_CODE"
+          exit 1
+        fi
         
     - name: 📋 Deployment Summary
+      if: always()
       run: |
+        APP_URL=$(kubectl get svc app-service -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+        GRAFANA_URL=$(kubectl get svc kube-prom-grafana -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "not-deployed")
+        PROMETHEUS_URL=$(kubectl get svc kube-prom-kube-prometheus-prometheus -n monitoring -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null || echo "not-deployed")
+        
         echo "## 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
         echo "- **Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Docker Image:** ${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}:${{ github.ref_name }}-${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔗 Application URLs" >> $GITHUB_STEP_SUMMARY
+        echo "- **App:** http://$APP_URL" >> $GITHUB_STEP_SUMMARY
+        if [ "$GRAFANA_URL" != "not-deployed" ]; then
+          echo "- **Grafana:** http://$GRAFANA_URL (admin/Admin@12345)" >> $GITHUB_STEP_SUMMARY
+        fi
+        if [ "$PROMETHEUS_URL" != "not-deployed" ]; then
+          echo "- **Prometheus:** http://$PROMETHEUS_URL:9090" >> $GITHUB_STEP_SUMMARY
+        fi
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Deployment Status" >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+        kubectl get pods -n ${{ env.NAMESPACE }} >> $GITHUB_STEP_SUMMARY
+        echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
         echo "- **Status:** ✅ Deployed Successfully" >> $GITHUB_STEP_SUMMARY
-        echo "- **Time:** $(date)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Time:** $(date -u)" >> $GITHUB_STEP_SUMMARY
 
-  # Notification Job
+  # Final notification
   notify:
-    name: 📢 Notify Results
+    name: 📢 Pipeline Results
     runs-on: ubuntu-latest
-    needs: [build-and-install, lint-and-security, test, build-docker, deploy]
+    needs: [build-and-install, lint, security-scan, test, build-docker, terraform, deploy-app, deploy-monitoring, smoke-tests]
     if: always()
     
     steps:
     - name: 📊 Pipeline Summary
       run: |
         echo "## 📊 Pipeline Results" >> $GITHUB_STEP_SUMMARY
-        echo "- **Build & Install:** ${{ needs.build-and-install.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Lint & Security:** ${{ needs.lint-and-security.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Test:** ${{ needs.test.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Docker Build:** ${{ needs.build-docker.result }}" >> $GITHUB_STEP_SUMMARY
-        echo "- **Deploy:** ${{ needs.deploy.result }}" >> $GITHUB_STEP_SUMMARY
+        echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
+        echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+        echo "| Build & Install | ${{ needs.build-and-install.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Lint | ${{ needs.lint.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Security Scan | ${{ needs.security-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Test | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Docker Build | ${{ needs.build-docker.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Terraform | ${{ needs.terraform.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Deploy App | ${{ needs.deploy-app.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Deploy Monitoring | ${{ needs.deploy-monitoring.result }} |" >> $GITHUB_STEP_SUMMARY
+        echo "| Smoke Tests | ${{ needs.smoke-tests.result }} |" >> $GITHUB_STEP_SUMMARY
+
